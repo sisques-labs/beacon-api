@@ -1,4 +1,8 @@
-import { DateValueObject, UuidValueObject } from '@sisques-labs/nestjs-kit';
+import {
+  DateValueObject,
+  IBaseAggregate,
+  UuidValueObject,
+} from '@sisques-labs/nestjs-kit';
 
 import { NotificationBodyValueObject } from '@contexts/notifications/domain/value-objects/notification-body/notification-body.value-object';
 import { NotificationCancelledAtValueObject } from '@contexts/notifications/domain/value-objects/notification-cancelled-at/notification-cancelled-at.value-object';
@@ -11,8 +15,7 @@ import { NotificationSourceServiceValueObject } from '@contexts/notifications/do
 import { NotificationStatusValueObject } from '@contexts/notifications/domain/value-objects/notification-status/notification-status.value-object';
 import { NotificationTitleValueObject } from '@contexts/notifications/domain/value-objects/notification-title/notification-title.value-object';
 
-export interface INotification {
-  id: UuidValueObject;
+export interface INotification extends IBaseAggregate {
   tenantId: UuidValueObject;
   recipientUserId: UuidValueObject;
   channel: NotificationChannelValueObject;
@@ -25,6 +28,4 @@ export interface INotification {
   sentAt: NotificationSentAtValueObject | null;
   readAt: NotificationReadAtValueObject | null;
   cancelledAt: NotificationCancelledAtValueObject | null;
-  createdAt: DateValueObject;
-  updatedAt: DateValueObject;
 }
