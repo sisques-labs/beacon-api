@@ -3,7 +3,7 @@ import { registerAs } from '@nestjs/config';
 import { resolveCorsOrigins } from '@core/config/cors-origins';
 
 export const appConfig = registerAs('app', () => ({
-  name: process.env.SERVICE_NAME?.trim() || 'nestjs-template',
+  name: process.env.SERVICE_NAME?.trim() || 'beacon-api',
   nodeEnv: process.env.NODE_ENV ?? 'development',
   frontendUrl: (process.env.FRONTEND_URL ?? 'http://localhost:3001').replace(
     /\/$/,

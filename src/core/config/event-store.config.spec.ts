@@ -20,7 +20,7 @@ describe('eventStoreConfig', () => {
     expect(config).toEqual({
       enabled: false,
       connectionString: 'kurrentdb://localhost:2113?tls=false',
-      streamPrefix: 'nestjs-template',
+      streamPrefix: 'beacon-api',
     });
   });
 

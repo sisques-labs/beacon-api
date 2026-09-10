@@ -1,4 +1,4 @@
-# Skill Registry — nestjs-template
+# Skill Registry — beacon-api
 
 Generated: 2026-05-29
 

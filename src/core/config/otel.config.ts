@@ -24,7 +24,7 @@ export const otelConfig = registerAs('otel', () => {
     serviceName:
       process.env.OTEL_SERVICE_NAME?.trim() ||
       process.env.SERVICE_NAME?.trim() ||
-      'nestjs-template',
+      'beacon-api',
     tracesSampleRatio: parseRatio(process.env.OTEL_TRACES_SAMPLE_RATIO, 1),
   };
 });

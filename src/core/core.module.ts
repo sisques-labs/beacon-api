@@ -81,7 +81,7 @@ const CORE_MODULES = [
   // Pass `contextBuilder` here once a context needs the caller's identity
   // inside an MCP tool — see `JwtAuthGuard`/`@CurrentUser()` above and
   // `IMcpContextBuilder` from `@sisques-labs/nestjs-kit/mcp`.
-  McpModule.forRoot({ name: 'nestjs-template', version: '0.1.0' }),
+  McpModule.forRoot({ name: 'beacon-api', version: '0.1.0' }),
 ];
 
 @Module({
