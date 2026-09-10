@@ -32,7 +32,7 @@ async function bootstrap() {
   app.useGlobalFilters(new BaseExceptionFilter());
 
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('NestJS Template')
+    .setTitle('Beacon Api')
     .setDescription('Sisques Labs NestJS service template')
     .setVersion('1')
     .build();

@@ -40,7 +40,7 @@ export async function bootstrapTestDataSource(): Promise<void> {
     migrationsApplied = true;
   } catch (error) {
     const hint =
-      'If the test DB was previously created with synchronize:true, reset it with: pnpm test:db:down && docker volume rm nestjs-template_postgres_data 2>/dev/null; pnpm test:db:up';
+      'If the test DB was previously created with synchronize:true, reset it with: pnpm test:db:down && docker volume rm beacon-api_postgres_data 2>/dev/null; pnpm test:db:up';
 
     throw new Error(
       `Failed to apply test database migrations. ${hint}\n\nOriginal error: ${error instanceof Error ? error.message : String(error)}`,

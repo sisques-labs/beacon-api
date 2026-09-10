@@ -1,4 +1,4 @@
-# Agent Skills — nestjs-template
+# Agent Skills — beacon-api
 
 Project-specific skills injected into code agents working on this repo.
 

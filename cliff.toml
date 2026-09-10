@@ -46,4 +46,4 @@ commit_parsers = [
 
 [remote.github]
 owner = "sisques-labs"
-repo  = "nestjs-template"
+repo  = "beacon-api"
