@@ -5,7 +5,6 @@ import { NotificationCancelledAtValueObject } from '@contexts/notifications/doma
 import { NotificationChannelValueObject } from '@contexts/notifications/domain/value-objects/notification-channel/notification-channel.value-object';
 import { NotificationDedupeKeyValueObject } from '@contexts/notifications/domain/value-objects/notification-dedupe-key/notification-dedupe-key.value-object';
 import { NotificationFailureReasonValueObject } from '@contexts/notifications/domain/value-objects/notification-failure-reason/notification-failure-reason.value-object';
-import { NotificationIdValueObject } from '@contexts/notifications/domain/value-objects/notification-id/notification-id.value-object';
 import { NotificationReadAtValueObject } from '@contexts/notifications/domain/value-objects/notification-read-at/notification-read-at.value-object';
 import { NotificationSentAtValueObject } from '@contexts/notifications/domain/value-objects/notification-sent-at/notification-sent-at.value-object';
 import { NotificationSourceServiceValueObject } from '@contexts/notifications/domain/value-objects/notification-source-service/notification-source-service.value-object';
@@ -13,7 +12,7 @@ import { NotificationStatusValueObject } from '@contexts/notifications/domain/va
 import { NotificationTitleValueObject } from '@contexts/notifications/domain/value-objects/notification-title/notification-title.value-object';
 
 export interface INotification {
-  id: NotificationIdValueObject;
+  id: UuidValueObject;
   tenantId: UuidValueObject;
   recipientUserId: UuidValueObject;
   channel: NotificationChannelValueObject;

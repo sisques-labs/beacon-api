@@ -2,7 +2,7 @@
 
 - [x] 1.1 Add `notification-channel.enum.ts` (`EMAIL` | `PUSH` | `DISCORD`) and `notification-status.enum.ts` (`PENDING` | `SENT` | `FAILED` | `CANCELLED` | `READ`) under `domain/enums/` — verify files export the enums
 - [x] 1.2 Add `notification.primitives.ts` and `notification.interface.ts` (all aggregate fields as VOs on the interface; primitives hold raw values including mandatory `dedupeKey`) — verify TypeScript compiles for these files
-- [x] 1.3 Add value objects: `notification-id`, `notification-channel`, `notification-status`, `notification-title`, `notification-body`, `notification-dedupe-key`, `notification-source-service`, `notification-failure-reason`, plus date VOs for `sent-at` / `read-at` / `cancelled-at` as needed — verify VO unit specs cover invalid channel/status and empty title/body/dedupeKey/sourceService
+- [x] 1.3 Add value objects: `notification-channel`, `notification-status`, `notification-title`, `notification-body`, `notification-dedupe-key`, `notification-source-service`, `notification-failure-reason`, plus date VOs for `sent-at` / `read-at` / `cancelled-at` as needed; use kit `UuidValueObject` for id (no domain-specific id VO) — verify VO unit specs cover invalid channel/status and empty title/body/dedupeKey/sourceService
 
 ## 2. Events and exceptions
 

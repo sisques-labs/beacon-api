@@ -12,7 +12,6 @@ import { InvalidNotificationStatusTransitionException } from '@contexts/notifica
 import { NotificationBodyValueObject } from '@contexts/notifications/domain/value-objects/notification-body/notification-body.value-object';
 import { NotificationChannelValueObject } from '@contexts/notifications/domain/value-objects/notification-channel/notification-channel.value-object';
 import { NotificationDedupeKeyValueObject } from '@contexts/notifications/domain/value-objects/notification-dedupe-key/notification-dedupe-key.value-object';
-import { NotificationIdValueObject } from '@contexts/notifications/domain/value-objects/notification-id/notification-id.value-object';
 import { NotificationSourceServiceValueObject } from '@contexts/notifications/domain/value-objects/notification-source-service/notification-source-service.value-object';
 import { NotificationStatusValueObject } from '@contexts/notifications/domain/value-objects/notification-status/notification-status.value-object';
 import { NotificationTitleValueObject } from '@contexts/notifications/domain/value-objects/notification-title/notification-title.value-object';
@@ -24,7 +23,7 @@ const NOW = new Date('2024-01-01T00:00:00.000Z');
 
 const buildPending = (): NotificationAggregate =>
   new NotificationAggregate({
-    id: new NotificationIdValueObject(NOTIFICATION_ID),
+    id: new UuidValueObject(NOTIFICATION_ID),
     tenantId: new UuidValueObject(TENANT_ID),
     recipientUserId: new UuidValueObject(RECIPIENT_USER_ID),
     channel: new NotificationChannelValueObject(NotificationChannelEnum.EMAIL),

@@ -72,7 +72,7 @@ src/contexts/notifications/domain/
   view-models/ notification.view-model.ts
 ```
 
-- Value objects named `*ValueObject`, extend kit base types.
+- Value objects named `*ValueObject`, extend kit base types. Aggregate `id` uses kit `UuidValueObject` directly (no `NotificationIdValueObject`).
 - Builder `@Injectable()`, extends `BaseBuilder`, `build()` / `buildViewModel()`, no static factories.
 - Repo ports: `IBaseReadRepository<NotificationViewModel>` / `IBaseWriteRepository<NotificationAggregate>` + Symbol tokens.
 - Imports via `@contexts/notifications/...` across directories.
