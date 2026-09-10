@@ -1,0 +1,39 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch: {}
+
+exporters:
+  debug:
+    verbosity: basic
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+  prometheus:
+    endpoint: 0.0.0.0:8889
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp/jaeger, debug]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [prometheus, debug]
+    # No local backend wired up yet — logs just land in the collector's own
+    # output (`docker compose logs otel-collector`). Swap/add an exporter
+    # here (e.g. `loki`) to ship them somewhere real; the app side doesn't
+    # change.
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug]

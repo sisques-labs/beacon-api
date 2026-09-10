@@ -1,0 +1,10 @@
+allowBuilds:
+  '@apollo/protobufjs': true
+  '@scarf/scarf': true
+  '@swc/core': true
+  cpu-features: true
+  protobufjs: true
+  ssh2: true
+  unrs-resolver: true
+minimumReleaseAgeExclude:
+  - '@sisques-labs/nestjs-kit@1.8.0 || 1.10.0'

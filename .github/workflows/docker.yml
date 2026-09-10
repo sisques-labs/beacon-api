@@ -1,0 +1,23 @@
+name: Docker Build
+
+on:
+  pull_request:
+
+concurrency:
+  group: docker-${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  docker:
+    uses: sisques-labs/workflows/.github/workflows/docker-smoke-build.yml@main
+    with:
+      image_name: nestjs-template
+      platforms: linux/amd64,linux/arm64
+      scan_image: true
+    permissions:
+      contents: read
+      security-events: write

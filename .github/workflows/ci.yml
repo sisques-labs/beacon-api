@@ -1,0 +1,113 @@
+name: CI
+
+on:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: Lint, Test & Build
+    uses: sisques-labs/workflows/.github/workflows/node-ci.yml@main
+    with:
+      node_version: "22"
+      extra_check_command: "gen:topics:check"
+
+  # No `needs: ci` — e2e/integration run straight from source (they don't
+  # consume the `ci` job's build output), so they start in parallel with
+  # lint/test/build instead of queuing behind them.
+  e2e:
+    name: E2E tests (Postgres)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: nestjs_template_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d nestjs_template_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_DRIVER: postgres
+      DATABASE_HOST: localhost
+      DATABASE_PORT: 5433
+      DATABASE_DATABASE: nestjs_template_test
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: postgres
+      FRONTEND_URL: http://localhost:3001
+      NODE_ENV: test
+
+    steps:
+      - name: Setup
+        uses: sisques-labs/workflows/.github/actions/setup@main
+        with:
+          node_version: "22"
+
+      - name: Install dependencies
+        uses: sisques-labs/workflows/.github/actions/install@main
+        with:
+          app_path: "."
+          frozen_lockfile: "true"
+
+      - name: Apply database migrations
+        run: pnpm migration:run
+
+      - name: Run E2E tests
+        run: pnpm test:e2e
+
+  integration:
+    name: Integration tests (Postgres)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: nestjs_template_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d nestjs_template_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_DRIVER: postgres
+      DATABASE_HOST: localhost
+      DATABASE_PORT: 5433
+      DATABASE_DATABASE: nestjs_template_test
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: postgres
+      FRONTEND_URL: http://localhost:3001
+      NODE_ENV: test
+
+    steps:
+      - name: Setup
+        uses: sisques-labs/workflows/.github/actions/setup@main
+        with:
+          node_version: "22"
+
+      - name: Install dependencies
+        uses: sisques-labs/workflows/.github/actions/install@main
+        with:
+          app_path: "."
+          frozen_lockfile: "true"
+
+      - name: Apply database migrations
+        run: pnpm migration:run
+
+      - name: Run integration tests
+        run: pnpm test:integration
