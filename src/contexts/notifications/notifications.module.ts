@@ -32,7 +32,10 @@ const INFRASTRUCTURE_REPOSITORIES = [
     useClass: NotificationTypeormReadRepository,
   },
 ];
-const GRAPHQL_PROVIDERS = [NotificationQueriesResolver, NotificationGraphQLMapper];
+const GRAPHQL_PROVIDERS = [
+  NotificationQueriesResolver,
+  NotificationGraphQLMapper,
+];
 const KAFKA_CONSUMERS = [NotificationIngestConsumer];
 
 @Module({

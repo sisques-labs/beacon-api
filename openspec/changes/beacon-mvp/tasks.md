@@ -65,14 +65,14 @@ Apply project `testing.strict_tdd: true`: write each unit's co-located `.spec.ts
 
 ## Phase 2: Kafka Ingestion + Create (PR 2 → PR1 branch)
 
-- [ ] 2.1 `src/core/config/kafka-ingest.config.ts` (+ spec): `KAFKA_INGEST_{ENABLED,TOPIC,GROUP_ID}`.
-- [ ] 2.2 `src/core/config/env.validation.ts`: extend schema with `KAFKA_INGEST_*`.
-- [ ] 2.3 `src/core/core.module.ts`, `.env.example`: register config, document vars.
-- [ ] 2.4 `application/commands/create-notification/{command,handler}.ts` (+ spec): idempotent create via `findByDedupeKey`.
-- [ ] 2.5 `transport/kafka/dtos/notification-ingest.dto.ts` (+ spec): `class-validator` DTO.
-- [ ] 2.6 `transport/kafka/consumers/notification-ingest.consumer.ts` (+ spec): `kafkajs` consumer, `OnModuleInit`/`OnApplicationShutdown`, validate + dispatch, log-and-skip malformed/EMAIL/PUSH.
-- [ ] 2.7 `notifications.module.ts`: register consumer + command handler in provider arrays.
-- [ ] 2.8 `test/*.e2e-spec.ts`: ingest→persist with stubbed sender (dedupe no-op, EMAIL/PUSH skip, malformed skip).
+- [x] 2.1 `src/core/config/kafka-ingest.config.ts` (+ spec): `KAFKA_INGEST_{ENABLED,TOPIC,GROUP_ID}`.
+- [x] 2.2 `src/core/config/env.validation.ts`: extend schema with `KAFKA_INGEST_*`.
+- [x] 2.3 `src/core/core.module.ts`, `.env.example`: register config, document vars. `.env.example` could not be edited (blocked by tool permission settings on dotenv files); `core.module.ts` registration done.
+- [x] 2.4 `application/commands/create-notification/{command,handler}.ts` (+ spec): idempotent create via `findByDedupeKey`.
+- [x] 2.5 `transport/kafka/dtos/notification-ingest.dto.ts` (+ spec): `class-validator` DTO.
+- [x] 2.6 `transport/kafka/consumers/notification-ingest.consumer.ts` (+ spec): `kafkajs` consumer, `OnModuleInit`/`OnApplicationShutdown`, validate + dispatch, log-and-skip malformed/EMAIL/PUSH.
+- [x] 2.7 `notifications.module.ts`: register consumer + command handler in provider arrays.
+- [x] 2.8 `test/*.e2e-spec.ts`: ingest→persist with stubbed sender (dedupe no-op, EMAIL/PUSH skip, malformed skip). See `test/notification-ingest.e2e-spec.ts`.
 
 ## Phase 3: Discord Delivery (PR 3 → PR2 branch)
 
