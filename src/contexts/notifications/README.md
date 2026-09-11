@@ -3,11 +3,11 @@
 The first bounded context in this service. It defines the pattern every
 subsequent context follows — see `.claude/skills/architecture/SKILL.md`.
 
-## Current state (Phase 2 — persistence + Kafka ingestion + get-by-id query)
+## Current state (Phase 3 — persistence + Kafka ingestion + Discord delivery + get-by-id query)
 
-This slice makes `NotificationAggregate` persistable, ingestible from Kafka,
-and queryable by id. Delivery (Discord webhook) is **not yet implemented** —
-see "Planned" below.
+This is the complete `beacon-mvp` slice: `NotificationAggregate` is
+persistable, ingestible from Kafka, delivered to Discord, and queryable by
+id.
 
 ### Domain
 
@@ -61,11 +61,36 @@ see "Planned" below.
   `NotificationDedupeKeyAlreadyExistsException` is caught and the existing
   notification is re-read and returned instead of erroring. Publishes
   `NotificationCreatedEvent` via `EventPublisher.mergeObjectContext()` +
-  `aggregate.commit()` only after a successful save — currently has no
-  subscriber (added in the delivery slice).
+  `aggregate.commit()` only after a successful save —
+  `DeliverNotificationOnCreatedHandler` (below) subscribes to it.
 - **No authentication** on the ingestion topic in v1 — an explicitly
   accepted MVP risk; broker ACLs are the only control (see
   `openspec/changes/beacon-mvp/proposal.md`).
+
+### Delivery: Discord webhook
+
+- `DeliverNotificationOnCreatedHandler` (`application/events/`) —
+  `@EventsHandler(NotificationCreatedEvent)`; dispatches
+  `DeliverNotificationCommand` for the newly created notification.
+  Asynchronous by design (design.md D2): ingestion never awaits delivery.
+- `DeliverNotificationCommand` / `DeliverNotificationCommandHandler`
+  (`application/commands/deliver-notification/`) — loads the aggregate by
+  id, calls `INotificationSenderPort.send()`, then drives the terminal
+  transition: `aggregate.sent()` on success, `aggregate.fail(reason)` on
+  failure (network error or non-2xx response). `FAILED` is terminal by
+  existing domain design — **no retry** is attempted.
+- `INotificationSenderPort` (`application/ports/notification-sender.port.ts`,
+  token `NOTIFICATION_SENDER_PORT`) — one sender per channel; only `DISCORD`
+  has an implementation in this change. `EMAIL`/`PUSH` remain out of scope,
+  consistent with their exclusion from ingestion.
+- `DiscordWebhookNotificationSenderAdapter` (`infrastructure/adapters/`) —
+  posts `{ content }` to the webhook URL via a plain HTTP `fetch`. The
+  webhook URL always comes from `DISCORD_WEBHOOK_URL` (Beacon-side config,
+  `discord.config.ts`) — **never** from the ingress event, the same SSRF
+  mitigation as the ignored `deliverableAddress` above (design.md D3). v1
+  sends every `DISCORD` notification to this one fixed destination; there is
+  no per-tenant or per-notification Discord routing. Logs start and
+  completion of every webhook POST.
 
 ### Query: get notification by id
 
@@ -80,12 +105,6 @@ see "Planned" below.
   (`NotificationQueriesResolver`, arg validated via
   `NotificationFindByIdRequestDto`) — returns a GraphQL error (no unhandled
   crash) on an unknown id, through the same `BaseExceptionFilter`.
-
-## Planned (later PR in this same chain)
-
-- **Delivery** (PR 3): a Discord webhook sender behind
-  `INotificationSenderPort`, driven by `NotificationCreatedEvent` and
-  transitioning the aggregate to `SENT` / `FAILED`.
 
 ## Out of scope for this context (v1)
 
