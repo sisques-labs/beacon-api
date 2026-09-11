@@ -11,6 +11,7 @@ type IndividualConnConfig = {
   database?: string;
   synchronize?: boolean;
   migrationsRun?: boolean;
+  migrations?: unknown[];
   autoLoadEntities?: boolean;
   url?: string;
 };
@@ -70,6 +71,26 @@ describe('postgresConfig', () => {
     it('has migrationsRun set to false when DATABASE_MIGRATIONS_RUN=false', () => {
       process.env.DATABASE_MIGRATIONS_RUN = 'false';
       expect(getConfig().migrationsRun).toBe(false);
+    });
+  });
+
+  describe('migrations glob', () => {
+    beforeEach(() => {
+      process.env.DATABASE_HOST = 'localhost';
+      process.env.DATABASE_PORT = '5432';
+      process.env.DATABASE_USERNAME = 'postgres';
+      process.env.DATABASE_PASSWORD = 'secret';
+      process.env.DATABASE_DATABASE = 'nestjs_template_db';
+    });
+
+    it('stays empty under NODE_ENV=test to avoid double-loading migration files already applied by the test harness', () => {
+      process.env.NODE_ENV = 'test';
+      expect(getConfig().migrations).toEqual([]);
+    });
+
+    it('resolves a glob outside of NODE_ENV=test', () => {
+      process.env.NODE_ENV = 'production';
+      expect(getConfig().migrations?.length).toBe(1);
     });
   });
 

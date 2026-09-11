@@ -26,5 +26,13 @@ process.env.DATABASE_USERNAME = process.env.DATABASE_USERNAME ?? 'postgres';
 process.env.DATABASE_PASSWORD = process.env.DATABASE_PASSWORD ?? 'postgres';
 process.env.DATABASE_DATABASE =
   process.env.DATABASE_DATABASE ?? 'nestjs_template_test';
+// Migrations are already applied once by `bootstrapTestDataSource()` (see
+// test-data-source.ts) before the app boots. Letting the app's own
+// TypeOrmModule re-run them from the `.ts` glob on every E2E/integration
+// bootstrap is redundant and, under Vitest's ESM loader, can race with the
+// already-imported migration module (`Cannot require() ES Module ... not yet
+// fully loaded`) — so it stays disabled here.
+process.env.DATABASE_MIGRATIONS_RUN =
+  process.env.DATABASE_MIGRATIONS_RUN ?? 'false';
 process.env.FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:3001';
 process.env.NODE_ENV = 'test';
