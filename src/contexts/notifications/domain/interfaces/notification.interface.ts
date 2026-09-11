@@ -1,8 +1,4 @@
-import {
-  DateValueObject,
-  IBaseAggregate,
-  UuidValueObject,
-} from '@sisques-labs/nestjs-kit';
+import { IBaseAggregate, UuidValueObject } from '@sisques-labs/nestjs-kit';
 
 import { NotificationBodyValueObject } from '@contexts/notifications/domain/value-objects/notification-body/notification-body.value-object';
 import { NotificationCancelledAtValueObject } from '@contexts/notifications/domain/value-objects/notification-cancelled-at/notification-cancelled-at.value-object';
