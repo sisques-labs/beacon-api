@@ -9,18 +9,16 @@ import { BaseException } from '@sisques-labs/nestjs-kit';
 import { Response } from 'express';
 import { GraphQLError } from 'graphql';
 
+import { resolveNotificationsExceptionStatus } from '@contexts/notifications/transport/exceptions/notifications-exception.filter';
+
 /**
  * Per-context HTTP status resolvers, registered here as bounded contexts are
  * added. Each function returns a status for the exceptions it recognises, or
  * `undefined` to let the next resolver (or the default) decide.
- *
- * Example, once a `users` context exists:
- *   import { resolveUsersExceptionStatus } from '@contexts/users/transport/exceptions/users-exception.filter';
- *   const EXCEPTION_STATUS_RESOLVERS = [resolveUsersExceptionStatus];
  */
 const EXCEPTION_STATUS_RESOLVERS: Array<
   (exception: BaseException) => number | undefined
-> = [];
+> = [resolveNotificationsExceptionStatus];
 
 @Catch(BaseException)
 export class BaseExceptionFilter
