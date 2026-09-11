@@ -1,5 +1,6 @@
 import { appConfig } from '@core/config/app.config';
 import { authConfig } from '@core/config/auth.config';
+import { discordConfig } from '@core/config/discord.config';
 import { eventStoreConfig } from '@core/config/event-store.config';
 import { validateEnv } from '@core/config/env.validation';
 import { kafkaIngestConfig } from '@core/config/kafka-ingest.config';
@@ -41,6 +42,7 @@ const CORE_MODULES = [
       otelConfig,
       kafkaConfig,
       kafkaIngestConfig,
+      discordConfig,
       eventStoreConfig,
       authConfig,
     ],
