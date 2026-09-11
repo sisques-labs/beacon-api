@@ -22,8 +22,8 @@ jobs:
   release:
     uses: sisques-labs/workflows/.github/workflows/release-train.yml@main
     with:
-      image_name: sisqueslabs/nestjs-template
-      ghcr_image_name: ghcr.io/sisques-labs/nestjs-template
+      image_name: sisqueslabs/beacon-api
+      ghcr_image_name: ghcr.io/sisques-labs/beacon-api
       push_ghcr: true
       node_version: "22"
       run_lint: true

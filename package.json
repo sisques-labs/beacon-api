@@ -1,13 +1,13 @@
 {
-  "name": "sisqueslabs/nestjs-template",
-  "version": "0.5.0",
-  "description": "Sisques Labs NestJS service template — DDD+CQRS+Hexagonal, TypeORM/Postgres, Kafka, GraphQL+REST, OpenTelemetry, MCP.",
+  "name": "sisqueslabs/beacon-api",
+  "version": "0.0.0",
+  "description": "Beacon API",
   "author": "Sisques Labs",
   "repository": {
     "type": "git",
-    "url": "https://github.com/sisques-labs/nestjs-template.git"
+    "url": "https://github.com/sisques-labs/beacon-api.git"
   },
-  "homepage": "https://github.com/sisques-labs/nestjs-template",
+  "homepage": "https://github.com/sisques-labs/beacon-api",
   "private": true,
   "license": "UNLICENSED",
   "packageManager": "pnpm@11.21.0",

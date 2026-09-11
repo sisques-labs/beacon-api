@@ -39,8 +39,8 @@ jobs:
   release:
     uses: sisques-labs/workflows/.github/workflows/docker-release.yml@main
     with:
-      image_name: sisqueslabs/nestjs-template
-      ghcr_image_name: ghcr.io/sisques-labs/nestjs-template
+      image_name: sisqueslabs/beacon-api
+      ghcr_image_name: ghcr.io/sisques-labs/beacon-api
       push_ghcr: true
       version: ${{ inputs.version }}
       release_type: ${{ inputs.release_type }}
