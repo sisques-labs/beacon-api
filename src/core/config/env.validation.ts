@@ -40,6 +40,9 @@ const baseEnvSchema = z
       .optional(),
     KAFKA_SASL_USERNAME: z.string().optional(),
     KAFKA_SASL_PASSWORD: z.string().optional(),
+    KAFKA_INGEST_ENABLED: z.enum(['true', 'false']).optional(),
+    KAFKA_INGEST_TOPIC: z.string().optional(),
+    KAFKA_INGEST_GROUP_ID: z.string().optional(),
     EVENTSTORE_ENABLED: z.enum(['true', 'false']).optional(),
     EVENTSTORE_CONNECTION_STRING: z.string().optional(),
     EVENTSTORE_STREAM_PREFIX: z.string().optional(),
@@ -52,6 +55,15 @@ const baseEnvSchema = z
         code: z.ZodIssueCode.custom,
         path: ['KAFKA_BROKERS'],
         message: 'KAFKA_BROKERS is required when KAFKA_ENABLED is "true"',
+      });
+    }
+
+    if (env.KAFKA_INGEST_ENABLED === 'true' && !env.KAFKA_BROKERS?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['KAFKA_BROKERS'],
+        message:
+          'KAFKA_BROKERS is required when KAFKA_INGEST_ENABLED is "true"',
       });
     }
 
