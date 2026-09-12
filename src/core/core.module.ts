@@ -65,7 +65,21 @@ const CORE_MODULES = [
     }),
   }),
   ObservabilityModule,
-  MessagingModule.forRoot({ aggregateModuleMap: AGGREGATE_MODULE_MAP }),
+  MessagingModule.forRoot({
+    aggregateModuleMap: AGGREGATE_MODULE_MAP,
+    // Declares the topic/group; routing to the matching `@KafkaMessageHandler`
+    // provider (e.g. NotificationIngestConsumer, in its own bounded context)
+    // is resolved by the kit's InboundHandlerRegistry app-wide — core never
+    // imports a specific context's handler class.
+    inboundConsumers: kafkaIngestConfig().enabled
+      ? [
+          {
+            groupId: kafkaIngestConfig().groupId,
+            topics: [kafkaIngestConfig().topic],
+          },
+        ]
+      : [],
+  }),
   EventStoreModule.forRoot(),
   HealthModule,
   // Verifies Sisques Account access tokens (the platform's shared

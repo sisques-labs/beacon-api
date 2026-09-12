@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 
-import type { EachMessagePayload } from 'kafkajs';
+import { IInboundMessage } from '@sisques-labs/nestjs-kit/messaging';
 import { vi } from 'vitest';
 
 import { NotificationAggregate } from '../src/contexts/notifications/domain/aggregates/notification.aggregate';
@@ -13,21 +13,13 @@ import { NotificationIngestConsumer } from '../src/contexts/notifications/transp
 import { createE2EApp, E2EContext } from './helpers/app-bootstrap';
 import { truncateAll } from './helpers/db-reset';
 
-function buildPayload(value: Record<string, unknown>): EachMessagePayload {
-  const raw = Buffer.from(JSON.stringify(value));
+function buildPayload(value: Record<string, unknown>): IInboundMessage {
   return {
     topic: 'beacon-api.notification-requests',
     partition: 0,
-    message: {
-      key: null,
-      value: raw,
-      timestamp: '0',
-      attributes: 0,
-      offset: '0',
-      headers: {},
-    } as unknown as EachMessagePayload['message'],
-    heartbeat: async () => undefined,
-    pause: () => () => undefined,
+    key: null,
+    headers: {},
+    value: JSON.stringify(value),
   };
 }
 
