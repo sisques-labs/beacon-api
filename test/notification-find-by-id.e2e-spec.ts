@@ -66,8 +66,8 @@ describe('Notification get-by-id (e2e)', () => {
 
   describe('GraphQL — notificationFindById', () => {
     const query = `
-      query ($id: ID!) {
-        notificationFindById(id: $id) {
+      query ($input: NotificationFindByIdRequestDto!) {
+        notificationFindById(input: $input) {
           id
           status
           dedupeKey
@@ -79,7 +79,9 @@ describe('Notification get-by-id (e2e)', () => {
       const aggregate = buildAggregate();
       await writeRepository.save(aggregate);
 
-      const res = await gql(ctx.app, query, { id: aggregate.id.value });
+      const res = await gql(ctx.app, query, {
+        input: { id: aggregate.id.value },
+      });
 
       expect(res.status).toBe(200);
       expect(res.body.errors).toBeUndefined();
@@ -91,7 +93,7 @@ describe('Notification get-by-id (e2e)', () => {
     });
 
     it('returns a GraphQL error, not an unhandled crash, when the notification does not exist', async () => {
-      const res = await gql(ctx.app, query, { id: randomUUID() });
+      const res = await gql(ctx.app, query, { input: { id: randomUUID() } });
 
       expect(res.status).toBe(200);
       expect(res.body.errors).toBeDefined();

@@ -43,9 +43,10 @@ Ingestion (Kafka) and delivery (Discord webhook) are **not yet implemented**
 - **REST**: `GET /api/v1/notifications/:id` (`NotificationController`) — 404
   on an unknown id, via the `resolveNotificationsExceptionStatus` extension
   point registered in `src/core/filters/base-exception.filter.ts`.
-- **GraphQL**: `query { notificationFindById(id: "...") { ... } }`
-  (`NotificationResolver`) — returns a GraphQL error (no unhandled crash) on
-  an unknown id, through the same `BaseExceptionFilter`.
+- **GraphQL**: `query { notificationFindById(input: { id: "..." }) { ... } }`
+  (`NotificationQueriesResolver`, arg validated via
+  `NotificationFindByIdRequestDto`) — returns a GraphQL error (no unhandled
+  crash) on an unknown id, through the same `BaseExceptionFilter`.
 
 ## Planned (later PRs in this same chain)
 

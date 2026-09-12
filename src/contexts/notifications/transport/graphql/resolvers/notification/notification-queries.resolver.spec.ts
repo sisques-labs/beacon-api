@@ -3,9 +3,10 @@ import { Mocked, vi } from 'vitest';
 
 import { NotificationFindByIdQuery } from '@contexts/notifications/application/queries/notification-find-by-id/notification-find-by-id.query';
 import { NotificationViewModel } from '@contexts/notifications/domain/view-models/notification.view-model';
-import { NotificationGraphqlMapper } from '@contexts/notifications/transport/graphql/mappers/notification.mapper';
-import { NotificationObject } from '@contexts/notifications/transport/graphql/objects/notification.object';
-import { NotificationResolver } from '@contexts/notifications/transport/graphql/resolvers/notification.resolver';
+import { NotificationFindByIdRequestDto } from '@contexts/notifications/transport/graphql/dtos/requests/notification/notification-find-by-id.request.dto';
+import { NotificationResponseDto } from '@contexts/notifications/transport/graphql/dtos/responses/notification/notification.response.dto';
+import { NotificationGraphQLMapper } from '@contexts/notifications/transport/graphql/mappers/notification/notification.mapper';
+import { NotificationQueriesResolver } from '@contexts/notifications/transport/graphql/resolvers/notification/notification-queries.resolver';
 
 function buildViewModel(): NotificationViewModel {
   return new NotificationViewModel({
@@ -27,31 +28,32 @@ function buildViewModel(): NotificationViewModel {
   });
 }
 
-describe('NotificationResolver', () => {
-  let resolver: NotificationResolver;
+describe('NotificationQueriesResolver', () => {
+  let resolver: NotificationQueriesResolver;
   let queryBus: Mocked<QueryBus>;
-  let mapper: Mocked<NotificationGraphqlMapper>;
+  let mapper: Mocked<NotificationGraphQLMapper>;
 
   beforeEach(() => {
     queryBus = { execute: vi.fn() } as unknown as Mocked<QueryBus>;
     mapper = {
-      toObject: vi.fn(),
-    } as unknown as Mocked<NotificationGraphqlMapper>;
-    resolver = new NotificationResolver(queryBus, mapper);
+      toResponseDtoFromViewModel: vi.fn(),
+    } as unknown as Mocked<NotificationGraphQLMapper>;
+    resolver = new NotificationQueriesResolver(queryBus, mapper);
   });
 
   it('dispatches NotificationFindByIdQuery and maps the result', async () => {
     const viewModel = buildViewModel();
-    const object = new NotificationObject();
+    const dto = new NotificationResponseDto();
+    const input: NotificationFindByIdRequestDto = { id: viewModel.id };
     queryBus.execute.mockResolvedValue(viewModel);
-    mapper.toObject.mockReturnValue(object);
+    mapper.toResponseDtoFromViewModel.mockReturnValue(dto);
 
-    const result = await resolver.notificationFindById(viewModel.id);
+    const result = await resolver.notificationFindById(input);
 
     expect(queryBus.execute).toHaveBeenCalledWith(
       new NotificationFindByIdQuery({ id: viewModel.id }),
     );
-    expect(mapper.toObject).toHaveBeenCalledWith(viewModel);
-    expect(result).toBe(object);
+    expect(mapper.toResponseDtoFromViewModel).toHaveBeenCalledWith(viewModel);
+    expect(result).toBe(dto);
   });
 });

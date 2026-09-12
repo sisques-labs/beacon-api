@@ -64,15 +64,17 @@ src/contexts/{context}/
 │   └── decorators/        {name}.decorator.ts
 ├── transport/
 │   ├── graphql/
-│   │   ├── resolvers/     {name}.resolver.ts         — CommandBus/QueryBus only
-│   │   ├── dtos/          {name}.input.ts
-│   │   │                  {name}-filter.input.ts     — createFilterInput({Name}QueryableField, '{Name}')
-│   │   │                  {name}-sort.input.ts        — createSortInput({Name}QueryableField, '{Name}')
-│   │   ├── objects/       {name}.object.ts
-│   │   ├── mappers/       {name}.mapper.ts
-│   │   ├── enums/         {name}-registered-enums.graphql.ts
-│   │   │                  {name}-queryable-field.enum.ts  — whitelist for findByCriteria
-│   │   └── registries/    {name}-filterable-fields.registry.ts — FilterFieldRegistry, +.spec.ts
+│   │   ├── resolvers/{name}/  {name}-queries.resolver.ts    — {Name}QueriesResolver, CommandBus/QueryBus only
+│   │   │                      {name}-mutations.resolver.ts  — {Name}MutationsResolver, only once a mutation exists
+│   │   ├── dtos/
+│   │   │   ├── requests/{name}/   {name}-find-by-id.request.dto.ts — {Name}FindByIdRequestDto, @InputType()
+│   │   │   │                      {name}-filter.input.ts     — createFilterInput({Name}QueryableField, '{Name}')
+│   │   │   │                      {name}-sort.input.ts        — createSortInput({Name}QueryableField, '{Name}')
+│   │   │   └── responses/{name}/  {name}.response.dto.ts     — {Name}ResponseDto, @ObjectType('{Name}ResponseDto')
+│   │   ├── mappers/{name}/    {name}.mapper.ts          — {Name}GraphQLMapper, toResponseDtoFromViewModel()
+│   │   ├── enums/{name}/      {name}-registered-enums.graphql.ts
+│   │   │                      {name}-queryable-field.enum.ts  — whitelist for findByCriteria
+│   │   └── registries/    {name}-filterable-fields.registry.ts — FilterFieldRegistry, +.spec.ts (flat — one per context, no {name}/ nesting)
 │   ├── rest/
 │   │   ├── {name}.controller.ts
 │   │   └── dtos/          {name}.dto.ts
@@ -104,7 +106,7 @@ fields. This is the pattern that prevents two recurring bugs: `findByCriteria`
 silently ignoring `criteria.filters` (pagination applied, filters dropped),
 and `filter.field` interpolated straight into SQL with zero validation.
 
-1. **Queryable field enum** — `transport/graphql/enums/{name}-queryable-field.enum.ts`:
+1. **Queryable field enum** — `transport/graphql/enums/{name}/{name}-queryable-field.enum.ts`:
    a `{Name}QueryableField` enum whitelisting every scalar/FK field on that
    context's ViewModel that maps to a real column. Register it via
    `registerEnumType` as `{Name}QueryableFieldEnum` in the context's existing
@@ -119,7 +121,7 @@ and `filter.field` interpolated straight into SQL with zero validation.
    duplicated string list; the domain enum is the single source of truth.
    Co-locate a `.spec.ts` asserting every enum value has a registry entry,
    plus enum-membership and whitelist-rejection cases.
-3. **Filter/sort inputs** — `transport/graphql/dtos/requests/{name}-filter.input.ts` / `-sort.input.ts`:
+3. **Filter/sort inputs** — `transport/graphql/dtos/requests/{name}/{name}-filter.input.ts` / `-sort.input.ts`:
    ```ts
    @InputType('{Name}FilterInput')
    export class {Name}FilterInput extends createFilterInput({Name}QueryableField, '{Name}') {}
@@ -154,6 +156,11 @@ and `filter.field` interpolated straight into SQL with zero validation.
 | Query | `{name}-find-by-{x}.query.ts` | `order-find-by-id.query.ts` |
 | VO | `{name}.vo.ts` or `{name}.value-object.ts` | `order-status.value-object.ts` |
 | Spec | co-located, same name + `.spec.ts` | `order.aggregate.spec.ts` |
+| GraphQL queries resolver | `{name}-queries.resolver.ts`, class `{Name}QueriesResolver` | `order-queries.resolver.ts` |
+| GraphQL mutations resolver | `{name}-mutations.resolver.ts`, class `{Name}MutationsResolver` (only once a mutation exists) | `order-mutations.resolver.ts` |
+| GraphQL mapper | `{name}.mapper.ts`, class `{Name}GraphQLMapper`, method `toResponseDtoFromViewModel()` | `order.mapper.ts` |
+| GraphQL response DTO | `{name}.response.dto.ts`, class `{Name}ResponseDto`, `@ObjectType('{Name}ResponseDto')` | `order.response.dto.ts` |
+| GraphQL request DTO | `{name}-{op}.request.dto.ts`, class `{Name}{Op}RequestDto`, `@InputType()` | `order-find-by-id.request.dto.ts` |
 | Queryable field enum | `{name}-queryable-field.enum.ts` | `order-queryable-field.enum.ts` |
 | Filterable-fields registry | `{name}-filterable-fields.registry.ts` (+ `.spec.ts`) | `order-filterable-fields.registry.ts` |
 | Filter input | `{name}-filter.input.ts`, class `{Name}FilterInput` | `order-filter.input.ts` |

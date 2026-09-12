@@ -3,8 +3,8 @@ import { Field, ID, ObjectType } from '@nestjs/graphql';
 import { NotificationChannelEnum } from '@contexts/notifications/domain/enums/notification-channel.enum';
 import { NotificationStatusEnum } from '@contexts/notifications/domain/enums/notification-status.enum';
 
-@ObjectType('Notification')
-export class NotificationObject {
+@ObjectType('NotificationResponseDto')
+export class NotificationResponseDto {
   @Field(() => ID)
   id!: string;
 
