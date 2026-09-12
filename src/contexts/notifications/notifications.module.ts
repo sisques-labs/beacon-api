@@ -5,10 +5,14 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { CreateNotificationCommandHandler } from '@contexts/notifications/application/commands/create-notification/create-notification.handler';
+import { DeliverNotificationCommandHandler } from '@contexts/notifications/application/commands/deliver-notification/deliver-notification.handler';
+import { DeliverNotificationOnCreatedHandler } from '@contexts/notifications/application/events/deliver-notification-on-created.handler';
+import { NOTIFICATION_SENDER_PORT } from '@contexts/notifications/application/ports/notification-sender.port';
 import { NotificationFindByIdHandler } from '@contexts/notifications/application/queries/notification-find-by-id/notification-find-by-id.handler';
 import { AssertNotificationViewModelExistsService } from '@contexts/notifications/application/services/read/assert-notification-view-model-exists.service';
 import { NOTIFICATION_READ_REPOSITORY } from '@contexts/notifications/domain/repositories/read/notification-read.repository';
 import { NOTIFICATION_WRITE_REPOSITORY } from '@contexts/notifications/domain/repositories/write/notification-write.repository';
+import { DiscordWebhookNotificationSenderAdapter } from '@contexts/notifications/infrastructure/adapters/discord-webhook-notification-sender.adapter';
 import { NotificationEntity } from '@contexts/notifications/infrastructure/persistence/typeorm/entities/notification.entity';
 import { NotificationTypeormMapper } from '@contexts/notifications/infrastructure/persistence/typeorm/mappers/notification-typeorm.mapper';
 import { NotificationTypeormReadRepository } from '@contexts/notifications/infrastructure/persistence/typeorm/repositories/notification-typeorm-read.repository';
@@ -18,7 +22,11 @@ import { NotificationQueriesResolver } from '@contexts/notifications/transport/g
 import { NotificationIngestConsumer } from '@contexts/notifications/transport/kafka/consumers/notification-ingest.consumer';
 import { NotificationController } from '@contexts/notifications/transport/rest/notification.controller';
 
-const COMMAND_HANDLERS = [CreateNotificationCommandHandler];
+const COMMAND_HANDLERS = [
+  CreateNotificationCommandHandler,
+  DeliverNotificationCommandHandler,
+];
+const EVENT_HANDLERS = [DeliverNotificationOnCreatedHandler];
 const QUERY_HANDLERS = [NotificationFindByIdHandler];
 const APPLICATION_SERVICES = [AssertNotificationViewModelExistsService];
 const INFRASTRUCTURE_MAPPERS = [NotificationTypeormMapper];
@@ -30,6 +38,10 @@ const INFRASTRUCTURE_REPOSITORIES = [
   {
     provide: NOTIFICATION_READ_REPOSITORY,
     useClass: NotificationTypeormReadRepository,
+  },
+  {
+    provide: NOTIFICATION_SENDER_PORT,
+    useClass: DiscordWebhookNotificationSenderAdapter,
   },
 ];
 const GRAPHQL_PROVIDERS = [
@@ -43,6 +55,7 @@ const KAFKA_CONSUMERS = [NotificationIngestConsumer];
   controllers: [NotificationController],
   providers: [
     ...COMMAND_HANDLERS,
+    ...EVENT_HANDLERS,
     ...QUERY_HANDLERS,
     ...APPLICATION_SERVICES,
     ...INFRASTRUCTURE_MAPPERS,
