@@ -93,8 +93,8 @@ importers:
         specifier: 0.31.0
         version: 0.31.0
       '@sisques-labs/nestjs-kit':
-        specifier: 1.10.0
-        version: 1.10.0(68a3f76d4bd6ed6a5e7c122fe4c339a6)
+        specifier: 1.11.0
+        version: 1.11.0(68a3f76d4bd6ed6a5e7c122fe4c339a6)
       axios:
         specifier: ^1.20.0
         version: 1.20.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
@@ -1622,8 +1622,8 @@ packages:
   '@scarf/scarf@1.4.0':
     resolution: {integrity: sha512-xxeapPiUXdZAE3che6f3xogoJPeZgig6omHEy1rIY5WVsB3H2BHNnZH+gHG6x91SCWyQCzWGsuL2Hh3ClO5/qQ==}
 
-  '@sisques-labs/nestjs-kit@1.10.0':
-    resolution: {integrity: sha512-Rs2185DbiI3LNiwfANv8Ly1RdRMnAUZk29RWL0KBzppKX8CeQOuDnx3XS3kAdJNvwRuZkg8TM5YhSC+LYLqi5A==}
+  '@sisques-labs/nestjs-kit@1.11.0':
+    resolution: {integrity: sha512-OTVkAVdH6zuoQ5XKsUSvUYDGf3N77NksylW+jqh0eeErgqQ1G3uKFNQ5w+WumUMAQ6LG5arQrd9VahUlgYjCSg==}
     peerDependencies:
       '@apollo/server': '>=4.0.0'
       '@kafkajs/confluent-schema-registry': '>=3.0.0'
@@ -6847,7 +6847,7 @@ snapshots:
 
   '@scarf/scarf@1.4.0': {}
 
-  '@sisques-labs/nestjs-kit@1.10.0(68a3f76d4bd6ed6a5e7c122fe4c339a6)':
+  '@sisques-labs/nestjs-kit@1.11.0(68a3f76d4bd6ed6a5e7c122fe4c339a6)':
     dependencies:
       '@nestjs/common': 11.1.28(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.0)(rxjs@7.8.1)(supports-color@8.1.1)
       '@nestjs/core': 11.1.28(@nestjs/common@11.1.28(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.0)(rxjs@7.8.1)(supports-color@8.1.1))(@nestjs/platform-express@11.1.28)(reflect-metadata@0.2.0)(rxjs@7.8.1)

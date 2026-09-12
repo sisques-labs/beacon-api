@@ -36,9 +36,11 @@ id.
 
 ### Ingestion: Kafka notification-request consumer
 
-- `NotificationIngestConsumer` (`transport/kafka/consumers/`) — a raw
-  `kafkajs` consumer (`OnModuleInit`/`OnApplicationShutdown`), not the kit's
-  outbound-only `MessagingModule`. Opt-in via `KAFKA_INGEST_ENABLED`,
+- `NotificationIngestConsumer` (`transport/kafka/consumers/`) — a
+  `@KafkaMessageHandler`-decorated handler on the kit's declarative inbound
+  Kafka consumer (`@sisques-labs/nestjs-kit/messaging`, `MessagingModule`).
+  The topic/group are registered via `MessagingModule.forRoot({
+  inboundConsumers })` in `core.module.ts`, gated on `KAFKA_INGEST_ENABLED` —
   independent from the outbound forwarder's `KAFKA_ENABLED`; broker
   connection details (brokers/clientId/SSL/SASL) are reused from the
   existing `kafka` config. Topic/group come from `KAFKA_INGEST_TOPIC` /
