@@ -3,10 +3,10 @@ import { Mocked, vi } from 'vitest';
 
 import { NotificationFindByIdQuery } from '@contexts/notifications/application/queries/notification-find-by-id/notification-find-by-id.query';
 import { NotificationViewModel } from '@contexts/notifications/domain/view-models/notification.view-model';
-import { NotificationFindByIdRequestDto } from '@contexts/notifications/transport/graphql/dtos/requests/notification/notification-find-by-id.request.dto';
-import { NotificationResponseDto } from '@contexts/notifications/transport/graphql/dtos/responses/notification/notification.response.dto';
-import { NotificationGraphQLMapper } from '@contexts/notifications/transport/graphql/mappers/notification/notification.mapper';
-import { NotificationQueriesResolver } from '@contexts/notifications/transport/graphql/resolvers/notification/notification-queries.resolver';
+import { NotificationFindByIdRequestDto } from '@contexts/notifications/transport/graphql/dtos/requests/notification-find-by-id.request.dto';
+import { NotificationResponseDto } from '@contexts/notifications/transport/graphql/dtos/responses/notification.response.dto';
+import { NotificationGraphQLMapper } from '@contexts/notifications/transport/graphql/mappers/notification.mapper';
+import { NotificationQueriesResolver } from '@contexts/notifications/transport/graphql/resolvers/queries/notification-queries.resolver';
 
 function buildViewModel(): NotificationViewModel {
   return new NotificationViewModel({

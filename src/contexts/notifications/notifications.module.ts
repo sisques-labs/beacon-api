@@ -1,4 +1,4 @@
-import '@contexts/notifications/transport/graphql/enums/notification/notification-registered-enums.graphql';
+import '@contexts/notifications/transport/graphql/enums/notification-registered-enums.graphql';
 
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
@@ -12,8 +12,8 @@ import { NotificationEntity } from '@contexts/notifications/infrastructure/persi
 import { NotificationTypeormMapper } from '@contexts/notifications/infrastructure/persistence/typeorm/mappers/notification-typeorm.mapper';
 import { NotificationTypeormReadRepository } from '@contexts/notifications/infrastructure/persistence/typeorm/repositories/notification-typeorm-read.repository';
 import { NotificationTypeormWriteRepository } from '@contexts/notifications/infrastructure/persistence/typeorm/repositories/notification-typeorm-write.repository';
-import { NotificationGraphQLMapper } from '@contexts/notifications/transport/graphql/mappers/notification/notification.mapper';
-import { NotificationQueriesResolver } from '@contexts/notifications/transport/graphql/resolvers/notification/notification-queries.resolver';
+import { NotificationGraphQLMapper } from '@contexts/notifications/transport/graphql/mappers/notification.mapper';
+import { NotificationQueriesResolver } from '@contexts/notifications/transport/graphql/resolvers/queries/notification-queries.resolver';
 import { NotificationController } from '@contexts/notifications/transport/rest/notification.controller';
 
 const QUERY_HANDLERS = [NotificationFindByIdHandler];

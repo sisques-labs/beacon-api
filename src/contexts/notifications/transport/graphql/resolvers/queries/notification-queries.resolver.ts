@@ -4,9 +4,9 @@ import { Args, Query, Resolver } from '@nestjs/graphql';
 
 import { NotificationFindByIdQuery } from '@contexts/notifications/application/queries/notification-find-by-id/notification-find-by-id.query';
 import { NotificationViewModel } from '@contexts/notifications/domain/view-models/notification.view-model';
-import { NotificationFindByIdRequestDto } from '@contexts/notifications/transport/graphql/dtos/requests/notification/notification-find-by-id.request.dto';
-import { NotificationResponseDto } from '@contexts/notifications/transport/graphql/dtos/responses/notification/notification.response.dto';
-import { NotificationGraphQLMapper } from '@contexts/notifications/transport/graphql/mappers/notification/notification.mapper';
+import { NotificationFindByIdRequestDto } from '@contexts/notifications/transport/graphql/dtos/requests/notification-find-by-id.request.dto';
+import { NotificationResponseDto } from '@contexts/notifications/transport/graphql/dtos/responses/notification.response.dto';
+import { NotificationGraphQLMapper } from '@contexts/notifications/transport/graphql/mappers/notification.mapper';
 
 @Resolver()
 export class NotificationQueriesResolver {

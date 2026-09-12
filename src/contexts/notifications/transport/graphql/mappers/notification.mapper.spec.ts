@@ -1,5 +1,5 @@
 import { NotificationViewModel } from '@contexts/notifications/domain/view-models/notification.view-model';
-import { NotificationGraphQLMapper } from '@contexts/notifications/transport/graphql/mappers/notification/notification.mapper';
+import { NotificationGraphQLMapper } from '@contexts/notifications/transport/graphql/mappers/notification.mapper';
 
 function buildViewModel(): NotificationViewModel {
   return new NotificationViewModel({

@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { NotificationChannelEnum } from '@contexts/notifications/domain/enums/notification-channel.enum';
 import { NotificationStatusEnum } from '@contexts/notifications/domain/enums/notification-status.enum';
 import { NotificationViewModel } from '@contexts/notifications/domain/view-models/notification.view-model';
-import { NotificationResponseDto } from '@contexts/notifications/transport/graphql/dtos/responses/notification/notification.response.dto';
+import { NotificationResponseDto } from '@contexts/notifications/transport/graphql/dtos/responses/notification.response.dto';
 
 @Injectable()
 export class NotificationGraphQLMapper {
