@@ -6,6 +6,7 @@ import { AxiosError, AxiosHeaders } from 'axios';
 import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 
+import { notificationDeliveryQueueConfig } from '../src/contexts/notifications/infrastructure/config/notification-delivery-queue.config';
 import { NotificationAggregate } from '../src/contexts/notifications/domain/aggregates/notification.aggregate';
 import {
   INotificationWriteRepository,
@@ -134,9 +135,10 @@ describe('Notification Discord delivery (e2e)', () => {
     expect(postSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('transitions to FAILED with a failureReason when the webhook responds non-2xx, and never retries', async () => {
+  it('retries until exhaustion then transitions to FAILED with a failureReason', async () => {
     postSpy.mockReturnValue(throwError(() => buildAxiosError(500)));
     const event = buildValidEvent();
+    const { attempts } = notificationDeliveryQueueConfig();
 
     await consumer.handleMessage(buildPayload(event));
     const delivered = await waitForTerminalStatus(
@@ -148,9 +150,12 @@ describe('Notification Discord delivery (e2e)', () => {
     expect(delivered.status.value).toBe('FAILED');
     expect(delivered.failureReason?.value).toContain('500');
     expect(delivered.sentAt).toBeNull();
-    // Give any accidental retry a chance to fire before asserting call count.
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    expect(postSpy).toHaveBeenCalledTimes(1);
+    // Only the final BullMQ attempt persists FAILED (design.md D4), so by
+    // the time the aggregate leaves PENDING every retry has already fired:
+    // exactly `attempts` webhook calls (design.md D3/D9 test-profile
+    // backoff). Retry-then-succeed and crash-recovery scenarios are covered
+    // by PR #14's e2e rework.
+    expect(postSpy).toHaveBeenCalledTimes(attempts);
   });
 
   it('transitions to FAILED with a failureReason on a webhook network error', async () => {
