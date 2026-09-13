@@ -35,14 +35,22 @@ export class BullMqNotificationDeliveryQueueAdapter implements INotificationDeli
 
     this.logger.log(`Enqueuing delivery for notification ${notificationId}`);
 
-    await this.queue.add(
-      DELIVERY_JOB_NAME,
-      { notificationId },
-      {
-        jobId: notificationId,
-        attempts,
-        backoff: { type: 'exponential', delay: backoffMs },
-      },
-    );
+    try {
+      await this.queue.add(
+        DELIVERY_JOB_NAME,
+        { notificationId },
+        {
+          jobId: notificationId,
+          attempts,
+          backoff: { type: 'exponential', delay: backoffMs },
+        },
+      );
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `Failed to enqueue delivery for notification ${notificationId}: ${reason}`,
+      );
+      throw error;
+    }
   }
 }

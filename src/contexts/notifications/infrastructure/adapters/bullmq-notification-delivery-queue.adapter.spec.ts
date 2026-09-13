@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Queue } from 'bullmq';
 import { Mocked, vi } from 'vitest';
@@ -46,5 +47,17 @@ describe('BullMqNotificationDeliveryQueueAdapter', () => {
     const opts = queue.add.mock.calls[0][2];
     expect(opts?.attempts).toBe(3);
     expect(opts?.backoff).toEqual({ type: 'exponential', delay: 10 });
+  });
+
+  it('logs and rethrows when the queue backend is unavailable, without losing the notification', async () => {
+    const redisError = new Error('connect ECONNREFUSED 127.0.0.1:6379');
+    queue.add.mockRejectedValueOnce(redisError);
+    const errorSpy = vi.spyOn(Logger.prototype, 'error');
+
+    await expect(adapter.enqueue(NOTIFICATION_ID)).rejects.toThrow(redisError);
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      `Failed to enqueue delivery for notification ${NOTIFICATION_ID}: ${redisError.message}`,
+    );
   });
 });
