@@ -3,6 +3,7 @@ import { Mocked, vi } from 'vitest';
 
 import { CreateNotificationCommand } from '@contexts/notifications/application/commands/create-notification/create-notification.command';
 import { CreateNotificationCommandHandler } from '@contexts/notifications/application/commands/create-notification/create-notification.handler';
+import { FindNotificationByDedupeKeyService } from '@contexts/notifications/application/services/write/find-notification-by-dedupe-key/find-notification-by-dedupe-key.service';
 import { NotificationAggregate } from '@contexts/notifications/domain/aggregates/notification.aggregate';
 import { NotificationBuilder } from '@contexts/notifications/domain/builders/notification.builder';
 import { NotificationChannelEnum } from '@contexts/notifications/domain/enums/notification-channel.enum';
@@ -37,6 +38,7 @@ function buildAggregate(id: string): NotificationAggregate {
 describe('CreateNotificationCommandHandler', () => {
   let handler: CreateNotificationCommandHandler;
   let writeRepository: Mocked<INotificationWriteRepository>;
+  let findNotificationByDedupeKeyService: Mocked<FindNotificationByDedupeKeyService>;
   let publisher: Mocked<EventPublisher>;
 
   beforeEach(() => {
@@ -47,17 +49,24 @@ describe('CreateNotificationCommandHandler', () => {
       save: vi.fn(),
       delete: vi.fn(),
     } as unknown as Mocked<INotificationWriteRepository>;
+    findNotificationByDedupeKeyService = {
+      execute: vi.fn(),
+    } as unknown as Mocked<FindNotificationByDedupeKeyService>;
     publisher = {
       mergeObjectContext: vi.fn((aggregate: NotificationAggregate) => {
         aggregate.commit = vi.fn();
         return aggregate;
       }),
     } as unknown as Mocked<EventPublisher>;
-    handler = new CreateNotificationCommandHandler(writeRepository, publisher);
+    handler = new CreateNotificationCommandHandler(
+      writeRepository,
+      findNotificationByDedupeKeyService,
+      publisher,
+    );
   });
 
   it('creates and persists a new PENDING notification when no dedupe match exists', async () => {
-    writeRepository.findByDedupeKey.mockResolvedValue(null);
+    findNotificationByDedupeKeyService.execute.mockResolvedValue(null);
     writeRepository.save.mockImplementation((aggregate) =>
       Promise.resolve(aggregate),
     );
@@ -66,10 +75,10 @@ describe('CreateNotificationCommandHandler', () => {
       new CreateNotificationCommand(VALID_INPUT),
     );
 
-    expect(writeRepository.findByDedupeKey).toHaveBeenCalledWith(
-      VALID_INPUT.tenantId,
-      VALID_INPUT.dedupeKey,
-    );
+    expect(findNotificationByDedupeKeyService.execute).toHaveBeenCalledWith({
+      tenantId: VALID_INPUT.tenantId,
+      dedupeKey: VALID_INPUT.dedupeKey,
+    });
     expect(writeRepository.save).toHaveBeenCalledTimes(1);
     const savedAggregate = writeRepository.save.mock.calls[0][0];
     expect(savedAggregate.status.value).toBe('PENDING');
@@ -79,7 +88,7 @@ describe('CreateNotificationCommandHandler', () => {
 
   it('returns the existing notification id without saving when dedupeKey already exists', async () => {
     const existing = buildAggregate('33333333-3333-4333-8333-333333333333');
-    writeRepository.findByDedupeKey.mockResolvedValue(existing);
+    findNotificationByDedupeKeyService.execute.mockResolvedValue(existing);
 
     const result = await handler.execute(
       new CreateNotificationCommand(VALID_INPUT),
@@ -91,7 +100,7 @@ describe('CreateNotificationCommandHandler', () => {
 
   it('returns the winning notification id when save loses a dedupe race', async () => {
     const raceWinner = buildAggregate('44444444-4444-4444-8444-444444444444');
-    writeRepository.findByDedupeKey
+    findNotificationByDedupeKeyService.execute
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(raceWinner);
     writeRepository.save.mockRejectedValue(
@@ -106,11 +115,13 @@ describe('CreateNotificationCommandHandler', () => {
     );
 
     expect(result.id).toBe('44444444-4444-4444-8444-444444444444');
-    expect(writeRepository.findByDedupeKey).toHaveBeenCalledTimes(2);
+    expect(findNotificationByDedupeKeyService.execute).toHaveBeenCalledTimes(
+      2,
+    );
   });
 
   it('rethrows an unexpected save error unchanged', async () => {
-    writeRepository.findByDedupeKey.mockResolvedValue(null);
+    findNotificationByDedupeKeyService.execute.mockResolvedValue(null);
     const unexpected = new Error('boom');
     writeRepository.save.mockRejectedValue(unexpected);
 

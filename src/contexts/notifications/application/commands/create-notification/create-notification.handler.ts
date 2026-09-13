@@ -4,6 +4,7 @@ import { UuidValueObject } from '@sisques-labs/nestjs-kit';
 
 import { CreateNotificationResult } from '@contexts/notifications/application/commands/create-notification/create-notification-result.interface';
 import { CreateNotificationCommand } from '@contexts/notifications/application/commands/create-notification/create-notification.command';
+import { FindNotificationByDedupeKeyService } from '@contexts/notifications/application/services/write/find-notification-by-dedupe-key/find-notification-by-dedupe-key.service';
 import { NotificationAggregate } from '@contexts/notifications/domain/aggregates/notification.aggregate';
 import { NotificationBuilder } from '@contexts/notifications/domain/builders/notification.builder';
 import { NotificationDedupeKeyAlreadyExistsException } from '@contexts/notifications/domain/exceptions/notification-dedupe-key-already-exists.exception';
@@ -22,16 +23,17 @@ export class CreateNotificationCommandHandler implements ICommandHandler<
   constructor(
     @Inject(NOTIFICATION_WRITE_REPOSITORY)
     private readonly writeRepository: INotificationWriteRepository,
+    private readonly findNotificationByDedupeKeyService: FindNotificationByDedupeKeyService,
     private readonly publisher: EventPublisher,
   ) {}
 
   async execute(
     command: CreateNotificationCommand,
   ): Promise<CreateNotificationResult> {
-    const existing = await this.writeRepository.findByDedupeKey(
-      command.tenantId.value,
-      command.dedupeKey.value,
-    );
+    const existing = await this.findNotificationByDedupeKeyService.execute({
+      tenantId: command.tenantId.value,
+      dedupeKey: command.dedupeKey.value,
+    });
     if (existing) {
       this.logger.log(
         `Idempotent no-op: notification already exists for tenant ${command.tenantId.value}, dedupeKey ${command.dedupeKey.value}`,
@@ -51,10 +53,10 @@ export class CreateNotificationCommandHandler implements ICommandHandler<
       return { id: saved.id.value };
     } catch (error) {
       if (error instanceof NotificationDedupeKeyAlreadyExistsException) {
-        const raceWinner = await this.writeRepository.findByDedupeKey(
-          command.tenantId.value,
-          command.dedupeKey.value,
-        );
+        const raceWinner = await this.findNotificationByDedupeKeyService.execute({
+          tenantId: command.tenantId.value,
+          dedupeKey: command.dedupeKey.value,
+        });
         if (raceWinner) {
           this.logger.log(
             `Lost dedupe race for tenant ${command.tenantId.value}, dedupeKey ${command.dedupeKey.value}; returning existing notification`,
