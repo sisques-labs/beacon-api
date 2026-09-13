@@ -1,5 +1,6 @@
 import '@contexts/notifications/transport/graphql/enums/notification-registered-enums.graphql';
 
+import { BullModule } from '@nestjs/bullmq';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
@@ -9,6 +10,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { CreateNotificationCommandHandler } from '@contexts/notifications/application/commands/create-notification/create-notification.handler';
 import { DeliverNotificationCommandHandler } from '@contexts/notifications/application/commands/deliver-notification/deliver-notification.handler';
 import { DeliverNotificationOnCreatedHandler } from '@contexts/notifications/application/events/deliver-notification-on-created.handler';
+import { NOTIFICATION_DELIVERY_QUEUE_PORT } from '@contexts/notifications/application/ports/notification-delivery-queue.port';
 import { NOTIFICATION_SENDER_PORT } from '@contexts/notifications/application/ports/notification-sender.port';
 import { NotificationFindByIdHandler } from '@contexts/notifications/application/queries/notification-find-by-id/notification-find-by-id.handler';
 import { AssertNotificationViewModelExistsService } from '@contexts/notifications/application/services/read/assert-notification-view-model-exists/assert-notification-view-model-exists.service';
@@ -16,8 +18,10 @@ import { AssertNotificationAggregateExistsService } from '@contexts/notification
 import { FindNotificationByDedupeKeyService } from '@contexts/notifications/application/services/write/find-notification-by-dedupe-key/find-notification-by-dedupe-key.service';
 import { NOTIFICATION_READ_REPOSITORY } from '@contexts/notifications/domain/repositories/read/notification-read.repository';
 import { NOTIFICATION_WRITE_REPOSITORY } from '@contexts/notifications/domain/repositories/write/notification-write.repository';
+import { BullMqNotificationDeliveryQueueAdapter } from '@contexts/notifications/infrastructure/adapters/bullmq-notification-delivery-queue.adapter';
 import { DiscordWebhookNotificationSenderAdapter } from '@contexts/notifications/infrastructure/adapters/discord-webhook-notification-sender.adapter';
 import { discordConfig } from '@contexts/notifications/infrastructure/config/discord.config';
+import { notificationDeliveryQueueConfig } from '@contexts/notifications/infrastructure/config/notification-delivery-queue.config';
 import { NotificationEntity } from '@contexts/notifications/infrastructure/persistence/typeorm/entities/notification.entity';
 import { NotificationTypeormMapper } from '@contexts/notifications/infrastructure/persistence/typeorm/mappers/notification-typeorm.mapper';
 import { NotificationTypeormReadRepository } from '@contexts/notifications/infrastructure/persistence/typeorm/repositories/notification-typeorm-read.repository';
@@ -52,6 +56,10 @@ const INFRASTRUCTURE_REPOSITORIES = [
     provide: NOTIFICATION_SENDER_PORT,
     useClass: DiscordWebhookNotificationSenderAdapter,
   },
+  {
+    provide: NOTIFICATION_DELIVERY_QUEUE_PORT,
+    useClass: BullMqNotificationDeliveryQueueAdapter,
+  },
 ];
 const GRAPHQL_PROVIDERS = [
   NotificationQueriesResolver,
@@ -64,6 +72,8 @@ const KAFKA_CONSUMERS = [NotificationIngestConsumer];
     CqrsModule,
     TypeOrmModule.forFeature([NotificationEntity]),
     ConfigModule.forFeature(discordConfig),
+    ConfigModule.forFeature(notificationDeliveryQueueConfig),
+    BullModule.registerQueue({ name: notificationDeliveryQueueConfig().name }),
     HttpModule,
   ],
   controllers: [NotificationController],

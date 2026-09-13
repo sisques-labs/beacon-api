@@ -43,13 +43,13 @@ Chain strategy: pending
 
 ## Phase 2: Delivery Queue Port & Adapter
 
-- [ ] 2.1 Create `.../application/ports/notification-delivery-job-data.interface.ts`
-- [ ] 2.2 Create `.../application/ports/notification-delivery-queue.port.ts` — port + Symbol
-- [ ] 2.3 Create `.../infrastructure/config/interfaces/notification-delivery-queue-config.interface.ts`
-- [ ] 2.4 Create `.../infrastructure/config/notification-delivery-queue.config.ts` — name/attempts/backoff env
-- [ ] 2.5 RED `.../infrastructure/adapters/bullmq-notification-delivery-queue.adapter.spec.ts` — `enqueue()` passes `jobId`/`attempts`/`backoff`
-- [ ] 2.6 GREEN Create `.../infrastructure/adapters/bullmq-notification-delivery-queue.adapter.ts`
-- [ ] 2.7 Modify `notifications.module.ts` — `BullModule.registerQueue`, `ConfigModule.forFeature`, bind port→adapter
+- [x] 2.1 Create `.../application/ports/notification-delivery-job-data.interface.ts`
+- [x] 2.2 Create `.../application/ports/notification-delivery-queue.port.ts` — port + Symbol
+- [x] 2.3 Create `.../infrastructure/config/interfaces/notification-delivery-queue-config.interface.ts`
+- [x] 2.4 Create `.../infrastructure/config/notification-delivery-queue.config.ts` — name/attempts/backoff env
+- [x] 2.5 RED `.../infrastructure/adapters/bullmq-notification-delivery-queue.adapter.spec.ts` — `enqueue()` passes `jobId`/`attempts`/`backoff`
+- [x] 2.6 GREEN Create `.../infrastructure/adapters/bullmq-notification-delivery-queue.adapter.ts`
+- [x] 2.7 Modify `notifications.module.ts` — `BullModule.registerQueue`, `ConfigModule.forFeature`, bind port→adapter
 
 ## Phase 3: Retry-Fix & Duplicate Guard
 
