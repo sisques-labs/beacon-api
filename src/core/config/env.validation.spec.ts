@@ -11,6 +11,7 @@ function validEnv(
     DATABASE_USERNAME: 'postgres',
     DATABASE_PASSWORD: 'secret',
     DATABASE_DATABASE: 'nestjs_template_db',
+    REDIS_HOST: 'localhost',
     ...overrides,
   };
 }
@@ -34,6 +35,28 @@ describe('validateEnv', () => {
     expect(() => validateEnv(env)).toThrow(
       /Environment validation failed:[\s\S]*DATABASE_USERNAME/,
     );
+  });
+
+  it('rejects missing REDIS_HOST', () => {
+    const env = validEnv({ REDIS_HOST: '' });
+
+    expect(() => validateEnv(env)).toThrow(
+      /Environment validation failed:[\s\S]*REDIS_HOST/,
+    );
+  });
+
+  it('accepts REDIS_HOST alone, with port/password/db left unset', () => {
+    expect(() => validateEnv(validEnv())).not.toThrow();
+  });
+
+  it('accepts custom REDIS_PORT, REDIS_PASSWORD and REDIS_DB alongside REDIS_HOST', () => {
+    const env = validEnv({
+      REDIS_PORT: '6380',
+      REDIS_PASSWORD: 'secret',
+      REDIS_DB: '1',
+    });
+
+    expect(() => validateEnv(env)).not.toThrow();
   });
 
   it('rejects KAFKA_ENABLED=true without KAFKA_BROKERS', () => {

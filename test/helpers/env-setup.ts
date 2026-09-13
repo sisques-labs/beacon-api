@@ -34,6 +34,15 @@ process.env.DATABASE_DATABASE =
 // fully loaded`) — so it stays disabled here.
 process.env.DATABASE_MIGRATIONS_RUN =
   process.env.DATABASE_MIGRATIONS_RUN ?? 'false';
+process.env.REDIS_HOST = process.env.REDIS_HOST ?? 'localhost';
+process.env.REDIS_PORT = process.env.REDIS_PORT ?? '6382';
+// Test-profile queue knobs (design.md D9): exhaustion costs ~30ms of backoff
+// instead of ~75s, and each test file gets its own queue name so parallel
+// e2e/integration runs never consume each other's jobs.
+process.env.NOTIFICATION_DELIVERY_QUEUE_ATTEMPTS =
+  process.env.NOTIFICATION_DELIVERY_QUEUE_ATTEMPTS ?? '3';
+process.env.NOTIFICATION_DELIVERY_QUEUE_BACKOFF_MS =
+  process.env.NOTIFICATION_DELIVERY_QUEUE_BACKOFF_MS ?? '10';
 process.env.FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:3001';
 process.env.DISCORD_WEBHOOK_URL =
   process.env.DISCORD_WEBHOOK_URL ??

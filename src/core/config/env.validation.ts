@@ -26,6 +26,13 @@ const baseEnvSchema = z
       .string()
       .trim()
       .min(1, 'DATABASE_DATABASE must not be empty'),
+    REDIS_HOST: z.string().trim().min(1, 'REDIS_HOST must not be empty'),
+    REDIS_PORT: z.string().optional(),
+    REDIS_PASSWORD: z.string().optional(),
+    REDIS_DB: z.string().optional(),
+    NOTIFICATION_DELIVERY_QUEUE_NAME: z.string().optional(),
+    NOTIFICATION_DELIVERY_QUEUE_ATTEMPTS: z.string().optional(),
+    NOTIFICATION_DELIVERY_QUEUE_BACKOFF_MS: z.string().optional(),
     OTEL_EXPORTER_OTLP_ENDPOINT: z.string().trim().url().optional(),
     OTEL_SERVICE_NAME: z.string().optional(),
     OTEL_TRACES_SAMPLE_RATIO: z.coerce.number().min(0).max(1).optional(),

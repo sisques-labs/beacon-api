@@ -37,6 +37,16 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+      redis:
+        image: redis:8-alpine
+        ports:
+          - 6382:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
     env:
       DATABASE_DRIVER: postgres
       DATABASE_HOST: localhost
@@ -44,6 +54,8 @@ jobs:
       DATABASE_DATABASE: nestjs_template_test
       DATABASE_USERNAME: postgres
       DATABASE_PASSWORD: postgres
+      REDIS_HOST: localhost
+      REDIS_PORT: 6382
       FRONTEND_URL: http://localhost:3001
       NODE_ENV: test
 
@@ -84,6 +96,16 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+      redis:
+        image: redis:8-alpine
+        ports:
+          - 6382:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
     env:
       DATABASE_DRIVER: postgres
       DATABASE_HOST: localhost
@@ -91,6 +113,8 @@ jobs:
       DATABASE_DATABASE: nestjs_template_test
       DATABASE_USERNAME: postgres
       DATABASE_PASSWORD: postgres
+      REDIS_HOST: localhost
+      REDIS_PORT: 6382
       FRONTEND_URL: http://localhost:3001
       NODE_ENV: test
 

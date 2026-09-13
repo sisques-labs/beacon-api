@@ -2,16 +2,19 @@ import { appConfig } from '@core/config/app.config';
 import { authConfig } from '@core/config/auth.config';
 import { eventStoreConfig } from '@core/config/event-store.config';
 import { validateEnv } from '@core/config/env.validation';
+import { IRedisConfig } from '@core/config/interfaces/redis-config.interface';
 import { kafkaIngestConfig } from '@core/config/kafka-ingest.config';
 import { kafkaConfig } from '@core/config/kafka.config';
 import { otelConfig } from '@core/config/otel.config';
 import { postgresConfig } from '@core/config/postgres.config';
+import { redisConfig } from '@core/config/redis.config';
 import { AGGREGATE_MODULE_MAP } from '@core/messaging/domain/topics/aggregate-module.map.generated';
 import { HealthModule } from '@core/health/health.module';
 import { ObservabilityModule } from '@core/observability/observability.module';
 import { PingResolver } from '@core/transport/graphql/resolvers/ping.resolver';
 import '@core/transport/graphql/registered-enums.graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
+import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
@@ -43,6 +46,7 @@ const CORE_MODULES = [
       kafkaIngestConfig,
       eventStoreConfig,
       authConfig,
+      redisConfig,
     ],
     cache: true,
   }),
@@ -50,6 +54,25 @@ const CORE_MODULES = [
     inject: [ConfigService],
     useFactory: (config: ConfigService) =>
       config.getOrThrow<TypeOrmModuleOptions>('postgres'),
+  }),
+  // Redis is a required dependency, not opt-in like Kafka ingestion — see
+  // design.md D7. A queue's delivery durability must never be silently
+  // disabled behind a flag; the service fails fast at boot without
+  // REDIS_HOST (see env.validation.ts).
+  BullModule.forRootAsync({
+    inject: [ConfigService],
+    useFactory: (config: ConfigService) => {
+      const redis = config.getOrThrow<IRedisConfig>('redis');
+      return {
+        connection: {
+          host: redis.host,
+          port: redis.port,
+          password: redis.password,
+          db: redis.db,
+          maxRetriesPerRequest: null,
+        },
+      };
+    },
   }),
   // REST controllers are documented via Swagger (see main.ts). GraphQL is
   // wired alongside it — drop whichever transport this service doesn't use.

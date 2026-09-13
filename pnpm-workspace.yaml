@@ -3,6 +3,7 @@ allowBuilds:
   '@scarf/scarf': true
   '@swc/core': true
   cpu-features: true
+  msgpackr-extract: true
   protobufjs: true
   ssh2: true
   unrs-resolver: true
