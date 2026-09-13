@@ -1,17 +1,11 @@
 import { Inject, Logger } from '@nestjs/common';
-import {
-  CommandHandler,
-  EventBus,
-  EventPublisher,
-  ICommandHandler,
-} from '@nestjs/cqrs';
+import { CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs';
 
 import { DeliverNotificationCommand } from '@contexts/notifications/application/commands/deliver-notification/deliver-notification.command';
 import {
   INotificationSenderPort,
   NOTIFICATION_SENDER_PORT,
 } from '@contexts/notifications/application/ports/notification-sender.port';
-import { NotificationNotFoundException } from '@contexts/notifications/domain/exceptions/notification-not-found.exception';
 import {
   INotificationWriteRepository,
   NOTIFICATION_WRITE_REPOSITORY,
