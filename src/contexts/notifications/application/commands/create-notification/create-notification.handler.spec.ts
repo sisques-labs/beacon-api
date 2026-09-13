@@ -1,11 +1,9 @@
-import { EventPublisher } from '@nestjs/cqrs';
+import { EventBus } from '@nestjs/cqrs';
 import { Mocked, vi } from 'vitest';
 
 import { CreateNotificationCommand } from '@contexts/notifications/application/commands/create-notification/create-notification.command';
 import { CreateNotificationCommandHandler } from '@contexts/notifications/application/commands/create-notification/create-notification.handler';
 import { FindNotificationByDedupeKeyService } from '@contexts/notifications/application/services/write/find-notification-by-dedupe-key/find-notification-by-dedupe-key.service';
-import { NotificationAggregate } from '@contexts/notifications/domain/aggregates/notification.aggregate';
-import { NotificationBuilder } from '@contexts/notifications/domain/builders/notification.builder';
 import { NotificationChannelEnum } from '@contexts/notifications/domain/enums/notification-channel.enum';
 import { NotificationDedupeKeyAlreadyExistsException } from '@contexts/notifications/domain/exceptions/notification-dedupe-key-already-exists.exception';
 import { INotificationWriteRepository } from '@contexts/notifications/domain/repositories/write/notification-write.repository';
@@ -20,26 +18,11 @@ const VALID_INPUT = {
   dedupeKey: 'gardenia:plant:1:watered',
 };
 
-function buildAggregate(id: string): NotificationAggregate {
-  return new NotificationBuilder()
-    .withId(id)
-    .withTenantId(VALID_INPUT.tenantId)
-    .withRecipientUserId(VALID_INPUT.recipientUserId)
-    .withChannel(VALID_INPUT.channel)
-    .withTitle(VALID_INPUT.title)
-    .withBody(VALID_INPUT.body)
-    .withSourceService(VALID_INPUT.sourceService)
-    .withDedupeKey(VALID_INPUT.dedupeKey)
-    .withCreatedAt(new Date('2026-01-01T00:00:00.000Z'))
-    .withUpdatedAt(new Date('2026-01-01T00:00:00.000Z'))
-    .build();
-}
-
 describe('CreateNotificationCommandHandler', () => {
   let handler: CreateNotificationCommandHandler;
   let writeRepository: Mocked<INotificationWriteRepository>;
   let findNotificationByDedupeKeyService: Mocked<FindNotificationByDedupeKeyService>;
-  let publisher: Mocked<EventPublisher>;
+  let eventBus: Mocked<EventBus>;
 
   beforeEach(() => {
     writeRepository = {
@@ -52,16 +35,13 @@ describe('CreateNotificationCommandHandler', () => {
     findNotificationByDedupeKeyService = {
       execute: vi.fn(),
     } as unknown as Mocked<FindNotificationByDedupeKeyService>;
-    publisher = {
-      mergeObjectContext: vi.fn((aggregate: NotificationAggregate) => {
-        aggregate.commit = vi.fn();
-        return aggregate;
-      }),
-    } as unknown as Mocked<EventPublisher>;
+    eventBus = {
+      publishAll: vi.fn(),
+    } as unknown as Mocked<EventBus>;
     handler = new CreateNotificationCommandHandler(
       writeRepository,
       findNotificationByDedupeKeyService,
-      publisher,
+      eventBus,
     );
   });
 
@@ -82,13 +62,14 @@ describe('CreateNotificationCommandHandler', () => {
     expect(writeRepository.save).toHaveBeenCalledTimes(1);
     const savedAggregate = writeRepository.save.mock.calls[0][0];
     expect(savedAggregate.status.value).toBe('PENDING');
-    expect(savedAggregate.commit).toHaveBeenCalledTimes(1);
+    expect(eventBus.publishAll).toHaveBeenCalledTimes(1);
     expect(result.id).toBe(savedAggregate.id.value);
   });
 
   it('returns the existing notification id without saving when dedupeKey already exists', async () => {
-    const existing = buildAggregate('33333333-3333-4333-8333-333333333333');
-    findNotificationByDedupeKeyService.execute.mockResolvedValue(existing);
+    findNotificationByDedupeKeyService.execute.mockResolvedValue({
+      id: '33333333-3333-4333-8333-333333333333',
+    });
 
     const result = await handler.execute(
       new CreateNotificationCommand(VALID_INPUT),
@@ -99,10 +80,9 @@ describe('CreateNotificationCommandHandler', () => {
   });
 
   it('returns the winning notification id when save loses a dedupe race', async () => {
-    const raceWinner = buildAggregate('44444444-4444-4444-8444-444444444444');
     findNotificationByDedupeKeyService.execute
       .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(raceWinner);
+      .mockResolvedValueOnce({ id: '44444444-4444-4444-8444-444444444444' });
     writeRepository.save.mockRejectedValue(
       new NotificationDedupeKeyAlreadyExistsException(
         VALID_INPUT.tenantId,
@@ -115,9 +95,7 @@ describe('CreateNotificationCommandHandler', () => {
     );
 
     expect(result.id).toBe('44444444-4444-4444-8444-444444444444');
-    expect(findNotificationByDedupeKeyService.execute).toHaveBeenCalledTimes(
-      2,
-    );
+    expect(findNotificationByDedupeKeyService.execute).toHaveBeenCalledTimes(2);
   });
 
   it('rethrows an unexpected save error unchanged', async () => {

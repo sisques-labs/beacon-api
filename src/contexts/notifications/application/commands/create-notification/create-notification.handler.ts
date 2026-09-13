@@ -1,6 +1,6 @@
 import { Inject, Logger } from '@nestjs/common';
-import { CommandHandler, EventPublisher, ICommandHandler } from '@nestjs/cqrs';
-import { UuidValueObject } from '@sisques-labs/nestjs-kit';
+import { CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs';
+import { BaseCommandHandler, UuidValueObject } from '@sisques-labs/nestjs-kit';
 
 import { CreateNotificationResult } from '@contexts/notifications/application/commands/create-notification/create-notification-result.interface';
 import { CreateNotificationCommand } from '@contexts/notifications/application/commands/create-notification/create-notification.command';
@@ -14,18 +14,21 @@ import {
 } from '@contexts/notifications/domain/repositories/write/notification-write.repository';
 
 @CommandHandler(CreateNotificationCommand)
-export class CreateNotificationCommandHandler implements ICommandHandler<
-  CreateNotificationCommand,
-  CreateNotificationResult
-> {
+export class CreateNotificationCommandHandler
+  extends BaseCommandHandler<CreateNotificationCommand, NotificationAggregate>
+  implements
+    ICommandHandler<CreateNotificationCommand, CreateNotificationResult>
+{
   private readonly logger = new Logger(CreateNotificationCommandHandler.name);
 
   constructor(
     @Inject(NOTIFICATION_WRITE_REPOSITORY)
     private readonly writeRepository: INotificationWriteRepository,
     private readonly findNotificationByDedupeKeyService: FindNotificationByDedupeKeyService,
-    private readonly publisher: EventPublisher,
-  ) {}
+    eventBus: EventBus,
+  ) {
+    super(eventBus);
+  }
 
   async execute(
     command: CreateNotificationCommand,
@@ -35,44 +38,12 @@ export class CreateNotificationCommandHandler implements ICommandHandler<
       dedupeKey: command.dedupeKey.value,
     });
     if (existing) {
-      this.logger.log(
-        `Idempotent no-op: notification already exists for tenant ${command.tenantId.value}, dedupeKey ${command.dedupeKey.value}`,
-      );
-      return { id: existing.id.value };
+      return existing;
     }
 
-    const aggregate = this.publisher.mergeObjectContext(
-      this.buildPendingAggregate(command),
-    );
-    aggregate.create();
-
-    try {
-      const saved = await this.writeRepository.save(aggregate);
-      aggregate.commit();
-      this.logger.log(`Notification ${saved.id.value} created`);
-      return { id: saved.id.value };
-    } catch (error) {
-      if (error instanceof NotificationDedupeKeyAlreadyExistsException) {
-        const raceWinner = await this.findNotificationByDedupeKeyService.execute({
-          tenantId: command.tenantId.value,
-          dedupeKey: command.dedupeKey.value,
-        });
-        if (raceWinner) {
-          this.logger.log(
-            `Lost dedupe race for tenant ${command.tenantId.value}, dedupeKey ${command.dedupeKey.value}; returning existing notification`,
-          );
-          return { id: raceWinner.id.value };
-        }
-      }
-      throw error;
-    }
-  }
-
-  private buildPendingAggregate(
-    command: CreateNotificationCommand,
-  ): NotificationAggregate {
     const now = new Date();
-    return new NotificationBuilder()
+
+    const aggregate = new NotificationBuilder()
       .withId(UuidValueObject.generate().value)
       .withTenantId(command.tenantId.value)
       .withRecipientUserId(command.recipientUserId.value)
@@ -84,5 +55,26 @@ export class CreateNotificationCommandHandler implements ICommandHandler<
       .withCreatedAt(now)
       .withUpdatedAt(now)
       .build();
+
+    aggregate.create();
+
+    try {
+      await this.writeRepository.save(aggregate);
+      await this.publishEvents(aggregate);
+      this.logger.log(`Notification ${aggregate.id.value} created`);
+      return { id: aggregate.id.value };
+    } catch (error) {
+      if (error instanceof NotificationDedupeKeyAlreadyExistsException) {
+        const raceWinner =
+          await this.findNotificationByDedupeKeyService.execute({
+            tenantId: command.tenantId.value,
+            dedupeKey: command.dedupeKey.value,
+          });
+        if (raceWinner) {
+          return raceWinner;
+        }
+      }
+      throw error;
+    }
   }
 }

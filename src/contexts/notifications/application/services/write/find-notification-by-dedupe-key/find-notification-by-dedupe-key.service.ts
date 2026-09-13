@@ -1,7 +1,7 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { IBaseService } from '@sisques-labs/nestjs-kit';
 
-import { NotificationAggregate } from '@contexts/notifications/domain/aggregates/notification.aggregate';
+import { CreateNotificationResult } from '@contexts/notifications/application/commands/create-notification/create-notification-result.interface';
 import {
   INotificationWriteRepository,
   NOTIFICATION_WRITE_REPOSITORY,
@@ -13,10 +13,12 @@ export interface FindNotificationByDedupeKeyInput {
 }
 
 @Injectable()
-export class FindNotificationByDedupeKeyService
-  implements
-    IBaseService<FindNotificationByDedupeKeyInput, NotificationAggregate | null>
-{
+export class FindNotificationByDedupeKeyService implements IBaseService<
+  FindNotificationByDedupeKeyInput,
+  CreateNotificationResult | null
+> {
+  private readonly logger = new Logger(FindNotificationByDedupeKeyService.name);
+
   constructor(
     @Inject(NOTIFICATION_WRITE_REPOSITORY)
     private readonly writeRepository: INotificationWriteRepository,
@@ -24,10 +26,18 @@ export class FindNotificationByDedupeKeyService
 
   async execute(
     input: FindNotificationByDedupeKeyInput,
-  ): Promise<NotificationAggregate | null> {
-    return this.writeRepository.findByDedupeKey(
+  ): Promise<CreateNotificationResult | null> {
+    const existing = await this.writeRepository.findByDedupeKey(
       input.tenantId,
       input.dedupeKey,
     );
+    if (!existing) {
+      return null;
+    }
+
+    this.logger.log(
+      `Idempotent no-op: notification already exists for tenant ${input.tenantId}, dedupeKey ${input.dedupeKey}`,
+    );
+    return { id: existing.id.value };
   }
 }

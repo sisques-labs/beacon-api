@@ -35,7 +35,7 @@ describe('FindNotificationByDedupeKeyService', () => {
     service = new FindNotificationByDedupeKeyService(writeRepository);
   });
 
-  it('returns the aggregate when a match is found', async () => {
+  it('returns the existing notification id when a match is found', async () => {
     const aggregate = buildAggregate();
     writeRepository.findByDedupeKey.mockResolvedValue(aggregate);
 
@@ -44,7 +44,7 @@ describe('FindNotificationByDedupeKeyService', () => {
       dedupeKey: aggregate.dedupeKey.value,
     });
 
-    expect(result).toBe(aggregate);
+    expect(result).toEqual({ id: aggregate.id.value });
     expect(writeRepository.findByDedupeKey).toHaveBeenCalledWith(
       aggregate.tenantId.value,
       aggregate.dedupeKey.value,
