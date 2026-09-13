@@ -43,6 +43,7 @@ const baseEnvSchema = z
     KAFKA_INGEST_ENABLED: z.enum(['true', 'false']).optional(),
     KAFKA_INGEST_TOPIC: z.string().optional(),
     KAFKA_INGEST_GROUP_ID: z.string().optional(),
+    DISCORD_WEBHOOK_URL: z.string().trim().url().optional(),
     EVENTSTORE_ENABLED: z.enum(['true', 'false']).optional(),
     EVENTSTORE_CONNECTION_STRING: z.string().optional(),
     EVENTSTORE_STREAM_PREFIX: z.string().optional(),

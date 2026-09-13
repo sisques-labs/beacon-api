@@ -35,4 +35,7 @@ process.env.DATABASE_DATABASE =
 process.env.DATABASE_MIGRATIONS_RUN =
   process.env.DATABASE_MIGRATIONS_RUN ?? 'false';
 process.env.FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:3001';
+process.env.DISCORD_WEBHOOK_URL =
+  process.env.DISCORD_WEBHOOK_URL ??
+  'https://discord.com/api/webhooks/000000000000000000/test-webhook-token';
 process.env.NODE_ENV = 'test';
