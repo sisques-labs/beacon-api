@@ -12,6 +12,7 @@ import { DeliverNotificationOnCreatedHandler } from '@contexts/notifications/app
 import { NOTIFICATION_SENDER_PORT } from '@contexts/notifications/application/ports/notification-sender.port';
 import { NotificationFindByIdHandler } from '@contexts/notifications/application/queries/notification-find-by-id/notification-find-by-id.handler';
 import { AssertNotificationViewModelExistsService } from '@contexts/notifications/application/services/read/assert-notification-view-model-exists/assert-notification-view-model-exists.service';
+import { AssertNotificationAggregateExistsService } from '@contexts/notifications/application/services/write/assert-notification-aggregate-exists.service';
 import { FindNotificationByDedupeKeyService } from '@contexts/notifications/application/services/write/find-notification-by-dedupe-key/find-notification-by-dedupe-key.service';
 import { NOTIFICATION_READ_REPOSITORY } from '@contexts/notifications/domain/repositories/read/notification-read.repository';
 import { NOTIFICATION_WRITE_REPOSITORY } from '@contexts/notifications/domain/repositories/write/notification-write.repository';
@@ -34,6 +35,7 @@ const EVENT_HANDLERS = [DeliverNotificationOnCreatedHandler];
 const QUERY_HANDLERS = [NotificationFindByIdHandler];
 const APPLICATION_SERVICES = [
   AssertNotificationViewModelExistsService,
+  AssertNotificationAggregateExistsService,
   FindNotificationByDedupeKeyService,
 ];
 const INFRASTRUCTURE_MAPPERS = [NotificationTypeormMapper];
