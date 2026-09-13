@@ -1,6 +1,6 @@
 import { Mocked, vi } from 'vitest';
 
-import { AssertNotificationViewModelExistsService } from '@contexts/notifications/application/services/read/assert-notification-view-model-exists.service';
+import { AssertNotificationViewModelExistsService } from '@contexts/notifications/application/services/read/assert-notification-view-model-exists/assert-notification-view-model-exists.service';
 import { NotificationNotFoundException } from '@contexts/notifications/domain/exceptions/notification-not-found.exception';
 import { INotificationReadRepository } from '@contexts/notifications/domain/repositories/read/notification-read.repository';
 import { NotificationViewModel } from '@contexts/notifications/domain/view-models/notification.view-model';
