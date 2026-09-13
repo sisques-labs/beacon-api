@@ -1,55 +1,52 @@
 import { Mocked, vi } from 'vitest';
 
-import { AssertNotificationViewModelExistsService } from '@contexts/notifications/application/services/read/assert-notification-view-model-exists.service';
+import { AssertNotificationAggregateExistsService } from '@contexts/notifications/application/services/write/assert-notification-aggregate-exists.service';
+import { NotificationAggregate } from '@contexts/notifications/domain/aggregates/notification.aggregate';
+import { NotificationBuilder } from '@contexts/notifications/domain/builders/notification.builder';
 import { NotificationNotFoundException } from '@contexts/notifications/domain/exceptions/notification-not-found.exception';
-import { INotificationReadRepository } from '@contexts/notifications/domain/repositories/read/notification-read.repository';
-import { NotificationViewModel } from '@contexts/notifications/domain/view-models/notification.view-model';
+import { INotificationWriteRepository } from '@contexts/notifications/domain/repositories/write/notification-write.repository';
 
-function buildViewModel(): NotificationViewModel {
-  return new NotificationViewModel({
-    id: '11111111-1111-4111-8111-111111111111',
-    tenantId: '22222222-2222-4222-8222-222222222222',
-    recipientUserId: '33333333-3333-4333-8333-333333333333',
-    channel: 'DISCORD',
-    status: 'PENDING',
-    title: 'Title',
-    body: 'Body',
-    sourceService: 'gardenia',
-    dedupeKey: 'dedupe-key-1',
-    failureReason: null,
-    sentAt: null,
-    readAt: null,
-    cancelledAt: null,
-    createdAt: new Date('2026-01-01T00:00:00.000Z'),
-    updatedAt: new Date('2026-01-01T00:00:00.000Z'),
-  });
+function buildAggregate(): NotificationAggregate {
+  return new NotificationBuilder()
+    .withId('11111111-1111-4111-8111-111111111111')
+    .withTenantId('22222222-2222-4222-8222-222222222222')
+    .withRecipientUserId('33333333-3333-4333-8333-333333333333')
+    .withChannel('DISCORD')
+    .withTitle('Title')
+    .withBody('Body')
+    .withSourceService('gardenia')
+    .withDedupeKey('dedupe-key-1')
+    .withCreatedAt(new Date('2026-01-01T00:00:00.000Z'))
+    .withUpdatedAt(new Date('2026-01-01T00:00:00.000Z'))
+    .build();
 }
 
-describe('AssertNotificationViewModelExistsService', () => {
-  let service: AssertNotificationViewModelExistsService;
-  let readRepository: Mocked<INotificationReadRepository>;
+describe('AssertNotificationAggregateExistsService', () => {
+  let service: AssertNotificationAggregateExistsService;
+  let writeRepository: Mocked<INotificationWriteRepository>;
 
   beforeEach(() => {
-    readRepository = {
+    writeRepository = {
       findById: vi.fn(),
+      findByDedupeKey: vi.fn(),
       findByCriteria: vi.fn(),
       save: vi.fn(),
       delete: vi.fn(),
-    } as unknown as Mocked<INotificationReadRepository>;
-    service = new AssertNotificationViewModelExistsService(readRepository);
+    } as unknown as Mocked<INotificationWriteRepository>;
+    service = new AssertNotificationAggregateExistsService(writeRepository);
   });
 
-  it('returns the view model when found', async () => {
-    const viewModel = buildViewModel();
-    readRepository.findById.mockResolvedValue(viewModel);
+  it('returns the aggregate when found', async () => {
+    const aggregate = buildAggregate();
+    writeRepository.findById.mockResolvedValue(aggregate);
 
-    const result = await service.execute(viewModel.id);
+    const result = await service.execute(aggregate.id.value);
 
-    expect(result).toBe(viewModel);
+    expect(result).toBe(aggregate);
   });
 
   it('throws NotificationNotFoundException when not found', async () => {
-    readRepository.findById.mockResolvedValue(null);
+    writeRepository.findById.mockResolvedValue(null);
 
     await expect(service.execute('unknown-id')).rejects.toBeInstanceOf(
       NotificationNotFoundException,
