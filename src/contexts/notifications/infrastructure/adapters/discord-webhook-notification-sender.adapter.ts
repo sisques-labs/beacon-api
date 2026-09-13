@@ -1,11 +1,13 @@
+import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-
-import { IDiscordConfig } from '@core/config/interfaces/discord-config.interface';
+import { AxiosError } from 'axios';
+import { firstValueFrom } from 'rxjs';
 
 import { INotificationSenderPort } from '@contexts/notifications/application/ports/notification-sender.port';
 import { INotificationSendResult } from '@contexts/notifications/application/ports/notification-send-result.interface';
 import { INotificationPrimitives } from '@contexts/notifications/domain/primitives/notification.primitives';
+import { IDiscordConfig } from '@contexts/notifications/infrastructure/config/interfaces/discord-config.interface';
 
 /**
  * Discord incoming-webhook implementation of `INotificationSenderPort`.
@@ -22,7 +24,10 @@ export class DiscordWebhookNotificationSenderAdapter implements INotificationSen
     DiscordWebhookNotificationSenderAdapter.name,
   );
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly httpService: HttpService,
+    private readonly configService: ConfigService,
+  ) {}
 
   async send(
     notification: INotificationPrimitives,
@@ -45,33 +50,31 @@ export class DiscordWebhookNotificationSenderAdapter implements INotificationSen
     );
 
     try {
-      const response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      await firstValueFrom(
+        this.httpService.post(webhookUrl, {
           content: `**${notification.title}**\n${notification.body}`,
         }),
-      });
-
-      if (!response.ok) {
-        const failureReason = `Discord webhook responded with status ${response.status}`;
-        this.logger.warn(
-          `Delivery failed for notification ${notification.id}: ${failureReason}`,
-        );
-        return { success: false, failureReason };
-      }
+      );
 
       this.logger.log(
         `Notification ${notification.id} delivered to Discord successfully`,
       );
       return { success: true, failureReason: null };
     } catch (error) {
-      const failureReason =
-        error instanceof Error ? error.message : String(error);
+      const failureReason = this.extractFailureReason(error);
       this.logger.error(
         `Delivery failed for notification ${notification.id}: ${failureReason}`,
       );
       return { success: false, failureReason };
     }
+  }
+
+  private extractFailureReason(error: unknown): string {
+    if (error instanceof AxiosError) {
+      return error.response
+        ? `Discord webhook responded with status ${error.response.status}`
+        : error.message;
+    }
+    return error instanceof Error ? error.message : String(error);
   }
 }

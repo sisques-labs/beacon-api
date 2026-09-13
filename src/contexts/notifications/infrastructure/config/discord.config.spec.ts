@@ -1,4 +1,4 @@
-import { discordConfig } from '@core/config/discord.config';
+import { discordConfig } from '@contexts/notifications/infrastructure/config/discord.config';
 
 describe('discordConfig', () => {
   const ORIGINAL_ENV = process.env;

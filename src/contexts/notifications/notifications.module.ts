@@ -1,6 +1,8 @@
 import '@contexts/notifications/transport/graphql/enums/notification-registered-enums.graphql';
 
+import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
@@ -14,6 +16,7 @@ import { FindNotificationByDedupeKeyService } from '@contexts/notifications/appl
 import { NOTIFICATION_READ_REPOSITORY } from '@contexts/notifications/domain/repositories/read/notification-read.repository';
 import { NOTIFICATION_WRITE_REPOSITORY } from '@contexts/notifications/domain/repositories/write/notification-write.repository';
 import { DiscordWebhookNotificationSenderAdapter } from '@contexts/notifications/infrastructure/adapters/discord-webhook-notification-sender.adapter';
+import { discordConfig } from '@contexts/notifications/infrastructure/config/discord.config';
 import { NotificationEntity } from '@contexts/notifications/infrastructure/persistence/typeorm/entities/notification.entity';
 import { NotificationTypeormMapper } from '@contexts/notifications/infrastructure/persistence/typeorm/mappers/notification-typeorm.mapper';
 import { NotificationTypeormReadRepository } from '@contexts/notifications/infrastructure/persistence/typeorm/repositories/notification-typeorm-read.repository';
@@ -55,7 +58,12 @@ const GRAPHQL_PROVIDERS = [
 const KAFKA_CONSUMERS = [NotificationIngestConsumer];
 
 @Module({
-  imports: [CqrsModule, TypeOrmModule.forFeature([NotificationEntity])],
+  imports: [
+    CqrsModule,
+    TypeOrmModule.forFeature([NotificationEntity]),
+    ConfigModule.forFeature(discordConfig),
+    HttpModule,
+  ],
   controllers: [NotificationController],
   providers: [
     ...COMMAND_HANDLERS,

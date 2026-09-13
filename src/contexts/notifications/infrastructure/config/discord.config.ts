@@ -1,6 +1,6 @@
 import { registerAs } from '@nestjs/config';
 
-import { IDiscordConfig } from '@core/config/interfaces/discord-config.interface';
+import { IDiscordConfig } from '@contexts/notifications/infrastructure/config/interfaces/discord-config.interface';
 
 /**
  * Configuration for the outbound Discord webhook sender.

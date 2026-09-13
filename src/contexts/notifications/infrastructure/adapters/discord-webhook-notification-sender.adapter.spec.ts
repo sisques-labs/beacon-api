@@ -1,4 +1,7 @@
+import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
+import { AxiosError, AxiosHeaders } from 'axios';
+import { of, throwError } from 'rxjs';
 import { Mocked, vi } from 'vitest';
 
 import { DiscordWebhookNotificationSenderAdapter } from '@contexts/notifications/infrastructure/adapters/discord-webhook-notification-sender.adapter';
@@ -22,10 +25,26 @@ const NOTIFICATION: INotificationPrimitives = {
   updatedAt: new Date('2026-01-01T00:00:00.000Z'),
 };
 
+function buildAxiosError(status: number): AxiosError {
+  return new AxiosError(
+    `Request failed with status code ${status}`,
+    String(status),
+    undefined,
+    undefined,
+    {
+      status,
+      statusText: String(status),
+      headers: new AxiosHeaders(),
+      config: { headers: new AxiosHeaders() },
+      data: null,
+    },
+  );
+}
+
 describe('DiscordWebhookNotificationSenderAdapter', () => {
   let adapter: DiscordWebhookNotificationSenderAdapter;
   let configService: Mocked<ConfigService>;
-  let fetchSpy: ReturnType<typeof vi.spyOn>;
+  let httpService: Mocked<HttpService>;
 
   beforeEach(() => {
     configService = {
@@ -33,42 +52,42 @@ describe('DiscordWebhookNotificationSenderAdapter', () => {
         webhookUrl: 'https://discord.com/api/webhooks/123/abc',
       }),
     } as unknown as Mocked<ConfigService>;
-    adapter = new DiscordWebhookNotificationSenderAdapter(configService);
-    fetchSpy = vi.spyOn(globalThis, 'fetch');
-  });
-
-  afterEach(() => {
-    fetchSpy.mockRestore();
+    httpService = {
+      post: vi.fn(),
+    } as unknown as Mocked<HttpService>;
+    adapter = new DiscordWebhookNotificationSenderAdapter(
+      httpService,
+      configService,
+    );
   });
 
   it('posts to the configured webhook and returns success on a 2xx response', async () => {
-    fetchSpy.mockResolvedValue(
-      new Response(null, { status: 204 }) as unknown as Response,
+    httpService.post.mockReturnValue(
+      of({
+        data: null,
+        status: 204,
+        statusText: 'No Content',
+        headers: {},
+        config: { headers: new AxiosHeaders() },
+      }),
     );
 
     const result = await adapter.send(NOTIFICATION);
 
-    expect(fetchSpy).toHaveBeenCalledWith(
+    expect(httpService.post).toHaveBeenCalledWith(
       'https://discord.com/api/webhooks/123/abc',
       expect.objectContaining({
-        method: 'POST',
-        headers: expect.objectContaining({
-          'Content-Type': 'application/json',
-        }),
+        content: expect.stringContaining(NOTIFICATION.title),
       }),
     );
-    const body = JSON.parse(
-      (fetchSpy.mock.calls[0][1] as RequestInit).body as string,
-    );
+    const body = httpService.post.mock.calls[0][1] as { content: string };
     expect(body.content).toContain(NOTIFICATION.title);
     expect(body.content).toContain(NOTIFICATION.body);
     expect(result).toEqual({ success: true, failureReason: null });
   });
 
   it('returns failure with the status code when the response is non-2xx', async () => {
-    fetchSpy.mockResolvedValue(
-      new Response(null, { status: 500 }) as unknown as Response,
-    );
+    httpService.post.mockReturnValue(throwError(() => buildAxiosError(500)));
 
     const result = await adapter.send(NOTIFICATION);
 
@@ -77,7 +96,9 @@ describe('DiscordWebhookNotificationSenderAdapter', () => {
   });
 
   it('returns failure with the error message on a network error', async () => {
-    fetchSpy.mockRejectedValue(new Error('ECONNREFUSED'));
+    httpService.post.mockReturnValue(
+      throwError(() => new Error('ECONNREFUSED')),
+    );
 
     const result = await adapter.send(NOTIFICATION);
 
@@ -87,12 +108,12 @@ describe('DiscordWebhookNotificationSenderAdapter', () => {
     });
   });
 
-  it('returns failure without calling fetch when no webhook URL is configured', async () => {
+  it('returns failure without calling the webhook when no webhook URL is configured', async () => {
     configService.getOrThrow.mockReturnValue({ webhookUrl: undefined });
 
     const result = await adapter.send(NOTIFICATION);
 
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(httpService.post).not.toHaveBeenCalled();
     expect(result.success).toBe(false);
     expect(result.failureReason).toBe('DISCORD_WEBHOOK_URL is not configured');
   });

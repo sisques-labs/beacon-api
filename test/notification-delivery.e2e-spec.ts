@@ -1,6 +1,9 @@
 import { randomUUID } from 'crypto';
 
+import { HttpService } from '@nestjs/axios';
+import { AxiosError, AxiosHeaders } from 'axios';
 import type { EachMessagePayload } from 'kafkajs';
+import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 
 import { NotificationAggregate } from '../src/contexts/notifications/domain/aggregates/notification.aggregate';
@@ -29,6 +32,22 @@ function buildPayload(value: Record<string, unknown>): EachMessagePayload {
     heartbeat: async () => undefined,
     pause: () => () => undefined,
   };
+}
+
+function buildAxiosError(status: number): AxiosError {
+  return new AxiosError(
+    `Request failed with status code ${status}`,
+    String(status),
+    undefined,
+    undefined,
+    {
+      status,
+      statusText: String(status),
+      headers: new AxiosHeaders(),
+      config: { headers: new AxiosHeaders() },
+      data: null,
+    },
+  );
 }
 
 function buildValidEvent(overrides: Record<string, unknown> = {}) {
@@ -75,12 +94,14 @@ describe('Notification Discord delivery (e2e)', () => {
   let ctx: E2EContext;
   let writeRepository: INotificationWriteRepository;
   let consumer: NotificationIngestConsumer;
-  let fetchSpy: ReturnType<typeof vi.spyOn>;
+  let httpService: HttpService;
+  let postSpy: ReturnType<typeof vi.spyOn>;
 
   beforeAll(async () => {
     ctx = await createE2EApp();
     writeRepository = ctx.app.get(NOTIFICATION_WRITE_REPOSITORY);
     consumer = ctx.app.get(NotificationIngestConsumer);
+    httpService = ctx.app.get(HttpService);
   });
 
   afterAll(async () => {
@@ -89,16 +110,22 @@ describe('Notification Discord delivery (e2e)', () => {
 
   beforeEach(async () => {
     await truncateAll(ctx.dataSource);
-    fetchSpy = vi.spyOn(globalThis, 'fetch');
+    postSpy = vi.spyOn(httpService, 'post');
   });
 
   afterEach(() => {
-    fetchSpy.mockRestore();
+    postSpy.mockRestore();
   });
 
   it('delivers to Discord and transitions to SENT on a 2xx webhook response', async () => {
-    fetchSpy.mockResolvedValue(
-      new Response(null, { status: 204 }) as unknown as Response,
+    postSpy.mockReturnValue(
+      of({
+        data: null,
+        status: 204,
+        statusText: 'No Content',
+        headers: {},
+        config: { headers: new AxiosHeaders() },
+      }),
     );
     const event = buildValidEvent();
 
@@ -112,13 +139,11 @@ describe('Notification Discord delivery (e2e)', () => {
     expect(delivered.status.value).toBe('SENT');
     expect(delivered.sentAt).not.toBeNull();
     expect(delivered.failureReason).toBeNull();
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(postSpy).toHaveBeenCalledTimes(1);
   });
 
   it('transitions to FAILED with a failureReason when the webhook responds non-2xx, and never retries', async () => {
-    fetchSpy.mockResolvedValue(
-      new Response(null, { status: 500 }) as unknown as Response,
-    );
+    postSpy.mockReturnValue(throwError(() => buildAxiosError(500)));
     const event = buildValidEvent();
 
     await consumer.handleMessage(buildPayload(event));
@@ -133,11 +158,11 @@ describe('Notification Discord delivery (e2e)', () => {
     expect(delivered.sentAt).toBeNull();
     // Give any accidental retry a chance to fire before asserting call count.
     await new Promise((resolve) => setTimeout(resolve, 50));
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(postSpy).toHaveBeenCalledTimes(1);
   });
 
   it('transitions to FAILED with a failureReason on a webhook network error', async () => {
-    fetchSpy.mockRejectedValue(new Error('ECONNREFUSED'));
+    postSpy.mockReturnValue(throwError(() => new Error('ECONNREFUSED')));
     const event = buildValidEvent();
 
     await consumer.handleMessage(buildPayload(event));
