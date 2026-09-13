@@ -2,6 +2,7 @@ import { appConfig } from '@core/config/app.config';
 import { authConfig } from '@core/config/auth.config';
 import { eventStoreConfig } from '@core/config/event-store.config';
 import { validateEnv } from '@core/config/env.validation';
+import { kafkaIngestConfig } from '@core/config/kafka-ingest.config';
 import { kafkaConfig } from '@core/config/kafka.config';
 import { otelConfig } from '@core/config/otel.config';
 import { postgresConfig } from '@core/config/postgres.config';
@@ -39,6 +40,7 @@ const CORE_MODULES = [
       appConfig,
       otelConfig,
       kafkaConfig,
+      kafkaIngestConfig,
       eventStoreConfig,
       authConfig,
     ],
@@ -61,7 +63,21 @@ const CORE_MODULES = [
     }),
   }),
   ObservabilityModule,
-  MessagingModule.forRoot({ aggregateModuleMap: AGGREGATE_MODULE_MAP }),
+  MessagingModule.forRoot({
+    aggregateModuleMap: AGGREGATE_MODULE_MAP,
+    // Declares the topic/group; routing to the matching `@KafkaMessageHandler`
+    // provider (e.g. NotificationIngestConsumer, in its own bounded context)
+    // is resolved by the kit's InboundHandlerRegistry app-wide — core never
+    // imports a specific context's handler class.
+    inboundConsumers: kafkaIngestConfig().enabled
+      ? [
+          {
+            groupId: kafkaIngestConfig().groupId,
+            topics: [kafkaIngestConfig().topic],
+          },
+        ]
+      : [],
+  }),
   EventStoreModule.forRoot(),
   HealthModule,
   // Verifies Sisques Account access tokens (the platform's shared

@@ -65,22 +65,22 @@ Apply project `testing.strict_tdd: true`: write each unit's co-located `.spec.ts
 
 ## Phase 2: Kafka Ingestion + Create (PR 2 → PR1 branch)
 
-- [ ] 2.1 `src/core/config/kafka-ingest.config.ts` (+ spec): `KAFKA_INGEST_{ENABLED,TOPIC,GROUP_ID}`.
-- [ ] 2.2 `src/core/config/env.validation.ts`: extend schema with `KAFKA_INGEST_*`.
-- [ ] 2.3 `src/core/core.module.ts`, `.env.example`: register config, document vars.
-- [ ] 2.4 `application/commands/create-notification/{command,handler}.ts` (+ spec): idempotent create via `findByDedupeKey`.
-- [ ] 2.5 `transport/kafka/dtos/notification-ingest.dto.ts` (+ spec): `class-validator` DTO.
-- [ ] 2.6 `transport/kafka/consumers/notification-ingest.consumer.ts` (+ spec): `kafkajs` consumer, `OnModuleInit`/`OnApplicationShutdown`, validate + dispatch, log-and-skip malformed/EMAIL/PUSH.
-- [ ] 2.7 `notifications.module.ts`: register consumer + command handler in provider arrays.
-- [ ] 2.8 `test/*.e2e-spec.ts`: ingest→persist with stubbed sender (dedupe no-op, EMAIL/PUSH skip, malformed skip).
+- [x] 2.1 `src/core/config/kafka-ingest.config.ts` (+ spec): `KAFKA_INGEST_{ENABLED,TOPIC,GROUP_ID}`.
+- [x] 2.2 `src/core/config/env.validation.ts`: extend schema with `KAFKA_INGEST_*`.
+- [x] 2.3 `src/core/core.module.ts`, `.env.example`: register config, document vars. `.env.example` could not be edited (blocked by tool permission settings on dotenv files); `core.module.ts` registration done.
+- [x] 2.4 `application/commands/create-notification/{command,handler}.ts` (+ spec): idempotent create via `findByDedupeKey`.
+- [x] 2.5 `transport/kafka/dtos/notification-ingest.dto.ts` (+ spec): `class-validator` DTO.
+- [x] 2.6 `transport/kafka/consumers/notification-ingest.consumer.ts` (+ spec): `kafkajs` consumer, `OnModuleInit`/`OnApplicationShutdown`, validate + dispatch, log-and-skip malformed/EMAIL/PUSH.
+- [x] 2.7 `notifications.module.ts`: register consumer + command handler in provider arrays.
+- [x] 2.8 `test/*.e2e-spec.ts`: ingest→persist with stubbed sender (dedupe no-op, EMAIL/PUSH skip, malformed skip). See `test/notification-ingest.e2e-spec.ts`.
 
 ## Phase 3: Discord Delivery (PR 3 → PR2 branch)
 
-- [ ] 3.1 `application/ports/notification-sender.port.ts` + `notification-send-result.interface.ts`: define `INotificationSenderPort`.
-- [ ] 3.2 `src/core/config/discord.config.ts` (+ spec), `env.validation.ts`, `.env.example`: `DISCORD_WEBHOOK_URL`.
-- [ ] 3.3 `infrastructure/adapters/discord-webhook-notification-sender.adapter.ts` (+ spec): HTTP POST, log start/completion.
-- [ ] 3.4 `application/commands/deliver-notification/{command,handler}.ts` (+ spec): sender call, `sent()`/`fail()` transitions.
-- [ ] 3.5 `application/events/deliver-notification-on-created.handler.ts` (+ spec): `@EventsHandler(NotificationCreatedEvent)` dispatches `DeliverNotificationCommand`.
-- [ ] 3.6 `notifications.module.ts`: register adapter, sender port token, command + event handlers.
-- [ ] 3.7 `test/*.e2e-spec.ts`: ingest→delivery success (`SENT`) and failure (`FAILED` + `failureReason`) with stubbed HTTP.
-- [ ] 3.8 `README.md`: update to reflect final ingest→create→deliver→query context state.
+- [x] 3.1 `application/ports/notification-sender.port.ts` + `notification-send-result.interface.ts`: define `INotificationSenderPort`.
+- [x] 3.2 `src/core/config/discord.config.ts` (+ spec), `env.validation.ts`, `.env.example`: `DISCORD_WEBHOOK_URL`. `.env.example` could not be edited (tool sandbox denies access to any `.env*` file, same limitation as Phase 2).
+- [x] 3.3 `infrastructure/adapters/discord-webhook-notification-sender.adapter.ts` (+ spec): HTTP POST, log start/completion.
+- [x] 3.4 `application/commands/deliver-notification/{command,handler}.ts` (+ spec): sender call, `sent()`/`fail()` transitions.
+- [x] 3.5 `application/events/deliver-notification-on-created.handler.ts` (+ spec): `@EventsHandler(NotificationCreatedEvent)` dispatches `DeliverNotificationCommand`.
+- [x] 3.6 `notifications.module.ts`: register adapter, sender port token, command + event handlers.
+- [x] 3.7 `test/*.e2e-spec.ts`: ingest→delivery success (`SENT`) and failure (`FAILED` + `failureReason`) with stubbed HTTP. See `test/notification-delivery.e2e-spec.ts`.
+- [x] 3.8 `README.md`: update to reflect final ingest→create→deliver→query context state.

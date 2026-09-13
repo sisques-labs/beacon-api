@@ -53,6 +53,23 @@ describe('validateEnv', () => {
     expect(() => validateEnv(env)).not.toThrow();
   });
 
+  it('rejects KAFKA_INGEST_ENABLED=true without KAFKA_BROKERS', () => {
+    const env = validEnv({ KAFKA_INGEST_ENABLED: 'true' });
+
+    expect(() => validateEnv(env)).toThrow(
+      /KAFKA_BROKERS is required when KAFKA_INGEST_ENABLED is "true"/,
+    );
+  });
+
+  it('accepts KAFKA_INGEST_ENABLED=true with KAFKA_BROKERS set', () => {
+    const env = validEnv({
+      KAFKA_INGEST_ENABLED: 'true',
+      KAFKA_BROKERS: 'localhost:9092',
+    });
+
+    expect(() => validateEnv(env)).not.toThrow();
+  });
+
   it('rejects AUTH_ENABLED=true without AUTH_JWT_SECRET', () => {
     const env = validEnv({ AUTH_ENABLED: 'true' });
 
@@ -94,6 +111,22 @@ describe('validateEnv', () => {
     });
 
     expect(() => validateEnv(env)).not.toThrow();
+  });
+
+  it('accepts a valid DISCORD_WEBHOOK_URL', () => {
+    const env = validEnv({
+      DISCORD_WEBHOOK_URL: 'https://discord.com/api/webhooks/123/abc',
+    });
+
+    expect(() => validateEnv(env)).not.toThrow();
+  });
+
+  it('rejects a non-URL DISCORD_WEBHOOK_URL', () => {
+    const env = validEnv({ DISCORD_WEBHOOK_URL: 'not-a-url' });
+
+    expect(() => validateEnv(env)).toThrow(
+      /Environment validation failed:[\s\S]*DISCORD_WEBHOOK_URL/,
+    );
   });
 
   it('formats a root-level issue without a field path', () => {
