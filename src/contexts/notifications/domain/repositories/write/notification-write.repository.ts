@@ -6,5 +6,9 @@ export const NOTIFICATION_WRITE_REPOSITORY = Symbol(
   'NOTIFICATION_WRITE_REPOSITORY',
 );
 
-export type INotificationWriteRepository =
-  IBaseWriteRepository<NotificationAggregate>;
+export interface INotificationWriteRepository extends IBaseWriteRepository<NotificationAggregate> {
+  findByDedupeKey(
+    tenantId: string,
+    dedupeKey: string,
+  ): Promise<NotificationAggregate | null>;
+}

@@ -1,8 +1,10 @@
 import { DataSource, DataSourceOptions } from 'typeorm';
 
-// Add migration imports here as the first bounded context introduces them,
-// e.g. `import { CreateOrders1780000000000 } from '../../src/database/migrations/1780000000000-CreateOrders';`
-const TEST_MIGRATIONS: DataSourceOptions['migrations'] = [];
+import { CreateNotifications1789112026872 } from '../../src/database/migrations/1789112026872-create-notifications';
+
+const TEST_MIGRATIONS: DataSourceOptions['migrations'] = [
+  CreateNotifications1789112026872,
+];
 
 export function getTestDataSourceOptions(): DataSourceOptions {
   return {
