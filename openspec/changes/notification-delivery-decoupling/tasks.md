@@ -53,15 +53,15 @@ Chain strategy: pending
 
 ## Phase 3: Retry-Fix & Duplicate Guard
 
-- [ ] 3.1 Create `.../domain/exceptions/notification-delivery-failed.exception.ts`
-- [ ] 3.2 Modify `deliver-notification.command.ts` — add `isFinalAttempt: boolean`
-- [ ] 3.3 RED extend `deliver-notification.handler.spec.ts` — D5 status guard; non-final throws without `fail()`; final `fail()`+save+publish then throws
-- [ ] 3.4 GREEN Modify `deliver-notification.handler.ts` — D5 guard + D4 throw-vs-`fail()` branch
-- [ ] 3.5 RED extend `deliver-notification-on-created.handler.spec.ts` — asserts `enqueue()`, never `commandBus.execute`
-- [ ] 3.6 GREEN Modify `deliver-notification-on-created.handler.ts` — inject port, `enqueue(event.data.id)`
-- [ ] 3.7 RED `.../transport/queue/processors/notification-delivery.processor.spec.ts` — derives `isFinalAttempt`, dispatches, rethrows
-- [ ] 3.8 GREEN Create `.../transport/queue/processors/notification-delivery.processor.ts` — `@Processor`/`WorkerHost`
-- [ ] 3.9 Modify `notifications.module.ts` — register processor
+- [x] 3.1 Create `.../domain/exceptions/notification-delivery-failed.exception.ts`
+- [x] 3.2 Modify `deliver-notification.command.ts` — add `isFinalAttempt: boolean`
+- [x] 3.3 RED extend `deliver-notification.handler.spec.ts` — D5 status guard; non-final throws without `fail()`; final `fail()`+save+publish then throws
+- [x] 3.4 GREEN Modify `deliver-notification.handler.ts` — D5 guard + D4 throw-vs-`fail()` branch
+- [x] 3.5 RED extend `deliver-notification-on-created.handler.spec.ts` — asserts `enqueue()`, never `commandBus.execute`
+- [x] 3.6 GREEN Modify `deliver-notification-on-created.handler.ts` — inject port, `enqueue(event.data.id)`
+- [x] 3.7 RED `.../transport/queue/processors/notification-delivery.processor.spec.ts` — derives `isFinalAttempt`, dispatches, rethrows
+- [x] 3.8 GREEN Create `.../transport/queue/processors/notification-delivery.processor.ts` — `@Processor`/`WorkerHost`
+- [x] 3.9 Modify `notifications.module.ts` — register processor
 
 ## Phase 4: E2E & Docs
 

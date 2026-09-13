@@ -1,8 +1,7 @@
-import { CommandBus } from '@nestjs/cqrs';
 import { Mocked, vi } from 'vitest';
 
-import { DeliverNotificationCommand } from '@contexts/notifications/application/commands/deliver-notification/deliver-notification.command';
 import { DeliverNotificationOnCreatedHandler } from '@contexts/notifications/application/events/deliver-notification-on-created.handler';
+import { INotificationDeliveryQueuePort } from '@contexts/notifications/application/ports/notification-delivery-queue.port';
 import { NotificationCreatedEvent } from '@contexts/notifications/domain/events/notification-created/notification-created.event';
 import { INotificationEventData } from '@contexts/notifications/domain/events/interfaces/notification-event-data.interface';
 
@@ -28,14 +27,16 @@ const EVENT_DATA: INotificationEventData = {
 
 describe('DeliverNotificationOnCreatedHandler', () => {
   let handler: DeliverNotificationOnCreatedHandler;
-  let commandBus: Mocked<CommandBus>;
+  let queuePort: Mocked<INotificationDeliveryQueuePort>;
 
   beforeEach(() => {
-    commandBus = { execute: vi.fn() } as unknown as Mocked<CommandBus>;
-    handler = new DeliverNotificationOnCreatedHandler(commandBus);
+    queuePort = {
+      enqueue: vi.fn(),
+    } as unknown as Mocked<INotificationDeliveryQueuePort>;
+    handler = new DeliverNotificationOnCreatedHandler(queuePort);
   });
 
-  it('dispatches DeliverNotificationCommand with the created notification id', async () => {
+  it('enqueues the created notification id for durable delivery', async () => {
     const event = new NotificationCreatedEvent(
       {
         eventType: 'NotificationCreatedEvent',
@@ -49,10 +50,7 @@ describe('DeliverNotificationOnCreatedHandler', () => {
 
     await handler.handle(event);
 
-    expect(commandBus.execute).toHaveBeenCalledTimes(1);
-    const dispatched = commandBus.execute.mock
-      .calls[0][0] as DeliverNotificationCommand;
-    expect(dispatched).toBeInstanceOf(DeliverNotificationCommand);
-    expect(dispatched.notificationId.value).toBe(NOTIFICATION_ID);
+    expect(queuePort.enqueue).toHaveBeenCalledTimes(1);
+    expect(queuePort.enqueue).toHaveBeenCalledWith(NOTIFICATION_ID);
   });
 });
