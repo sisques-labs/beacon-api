@@ -27,6 +27,7 @@ import { NotificationTypeormMapper } from '@contexts/notifications/infrastructur
 import { NotificationTypeormReadRepository } from '@contexts/notifications/infrastructure/persistence/typeorm/repositories/notification-typeorm-read.repository';
 import { NotificationTypeormWriteRepository } from '@contexts/notifications/infrastructure/persistence/typeorm/repositories/notification-typeorm-write.repository';
 import { NotificationGraphQLMapper } from '@contexts/notifications/transport/graphql/mappers/notification.mapper';
+import { NotificationMutationsResolver } from '@contexts/notifications/transport/graphql/resolvers/mutations/notification-mutations.resolver';
 import { NotificationQueriesResolver } from '@contexts/notifications/transport/graphql/resolvers/queries/notification-queries.resolver';
 import { NotificationIngestConsumer } from '@contexts/notifications/transport/kafka/consumers/notification-ingest.consumer';
 import { NotificationDeliveryProcessor } from '@contexts/notifications/transport/queue/processors/notification-delivery.processor';
@@ -65,6 +66,7 @@ const INFRASTRUCTURE_REPOSITORIES = [
 ];
 const GRAPHQL_PROVIDERS = [
   NotificationQueriesResolver,
+  NotificationMutationsResolver,
   NotificationGraphQLMapper,
 ];
 const REST_PROVIDERS = [NotificationRestMapper];

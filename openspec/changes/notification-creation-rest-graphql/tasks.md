@@ -34,15 +34,15 @@ Chain strategy: stacked-to-main
 
 ## Phase 2: GraphQL creation (PR 2, same spec reqs, GraphQL scenarios)
 
-- [ ] 2.1 RED: `.../transport/graphql/dtos/requests/notification-create.request.dto.spec.ts` — required-field rejection, D5 `@IsIn([DISCORD])` rejects `EMAIL`/`PUSH`
-- [ ] 2.2 GREEN: `.../transport/graphql/dtos/requests/notification-create.request.dto.ts` — `@InputType()` mirroring REST validators (design D6, flat path)
-- [ ] 2.3 RED: `.../transport/graphql/resolvers/mutations/notification-mutations.resolver.spec.ts` — asserts one `CreateNotificationCommand` dispatch, entry-log call, `MutationResponseGraphQLMapper.toResponseDto({ success: true, id, message })` mapping (mocked `CommandBus` + mapper, manual instantiation, D2 no re-provide)
-- [ ] 2.4 GREEN: `.../transport/graphql/resolvers/mutations/notification-mutations.resolver.ts` — `NotificationMutationsResolver`, `notificationCreate` mutation per design interface
-- [ ] 2.5 GREEN: `.../notifications.module.ts` — import + add `NotificationMutationsResolver` to `GRAPHQL_PROVIDERS` only (D2: mapper NOT re-added)
+- [x] 2.1 RED: `.../transport/graphql/dtos/requests/notification-create.request.dto.spec.ts` — required-field rejection, D5 `@IsIn([DISCORD])` rejects `EMAIL`/`PUSH`
+- [x] 2.2 GREEN: `.../transport/graphql/dtos/requests/notification-create.request.dto.ts` — `@InputType()` mirroring REST validators (design D6, flat path)
+- [x] 2.3 RED: `.../transport/graphql/resolvers/mutations/notification-mutations.resolver.spec.ts` — asserts one `CreateNotificationCommand` dispatch, entry-log call, `MutationResponseGraphQLMapper.toResponseDto({ success: true, id, message })` mapping (mocked `CommandBus` + mapper, manual instantiation, D2 no re-provide)
+- [x] 2.4 GREEN: `.../transport/graphql/resolvers/mutations/notification-mutations.resolver.ts` — `NotificationMutationsResolver`, `notificationCreate` mutation per design interface
+- [x] 2.5 GREEN: `.../notifications.module.ts` — import + add `NotificationMutationsResolver` to `GRAPHQL_PROVIDERS` only (D2: mapper NOT re-added)
 
 ## Phase 3: E2E + docs (PR 3, all four spec scenarios, both transports)
 
-- [ ] 3.1 RED: `test/notification-create.e2e-spec.ts` — REST/GraphQL happy path (201/id), dedupe replay same id no 2nd row, cross-transport dedupe, invalid-input rejection both transports, D5 non-DISCORD rejection both transports; model on `notification-find-by-id.e2e-spec.ts` + `notification-ingest.e2e-spec.ts`, stub Discord webhook per `notification-delivery.e2e-spec.ts`
-- [ ] 3.2 GREEN: confirm Phase 1+2 code satisfies 3.1 with no further prod changes; fix only if a real gap surfaces
-- [ ] 3.3 Update `src/contexts/notifications/README.md` — document REST/GraphQL creation surface, DISCORD-only constraint (D5), unauthenticated-write tradeoff (D7)
-- [ ] 3.4 Run `pnpm test`, `pnpm test:integration`, `pnpm test:e2e`, `pnpm lint`, `pnpm build`; confirm coverage >= 80%
+- [x] 3.1 RED: `test/notification-create.e2e-spec.ts` — REST/GraphQL happy path (201/id), dedupe replay same id no 2nd row, cross-transport dedupe, invalid-input rejection both transports, D5 non-DISCORD rejection both transports; model on `notification-find-by-id.e2e-spec.ts` + `notification-ingest.e2e-spec.ts`, stub Discord webhook per `notification-delivery.e2e-spec.ts`
+- [x] 3.2 GREEN: confirm Phase 1+2 code satisfies 3.1 with no further prod changes; fix only if a real gap surfaces
+- [x] 3.3 Update `src/contexts/notifications/README.md` — document REST/GraphQL creation surface, DISCORD-only constraint (D5), unauthenticated-write tradeoff (D7)
+- [x] 3.4 Run `pnpm test`, `pnpm test:integration`, `pnpm test:e2e`, `pnpm lint`, `pnpm build`; confirm coverage >= 80%
