@@ -6,7 +6,9 @@ import { NotificationFindByIdQuery } from '@contexts/notifications/application/q
 import { NotificationChannelEnum } from '@contexts/notifications/domain/enums/notification-channel.enum';
 import { NotificationViewModel } from '@contexts/notifications/domain/view-models/notification.view-model';
 import { NotificationCreateRequestDto } from '@contexts/notifications/transport/rest/dtos/notification-create-request.dto';
-import { NotificationController } from '@contexts/notifications/transport/rest/notification.controller';
+import { NotificationCreateResponseDto } from '@contexts/notifications/transport/rest/dtos/notification-create-response.dto';
+import { NotificationController } from '@contexts/notifications/transport/rest/controllers/notification.controller';
+import { NotificationRestMapper } from '@contexts/notifications/transport/rest/mappers/notification.mapper';
 
 function buildCreateRequestDto(): NotificationCreateRequestDto {
   const dto = new NotificationCreateRequestDto();
@@ -44,11 +46,19 @@ describe('NotificationController', () => {
   let controller: NotificationController;
   let queryBus: Mocked<QueryBus>;
   let commandBus: Mocked<CommandBus>;
+  let notificationRestMapper: Mocked<NotificationRestMapper>;
 
   beforeEach(() => {
     queryBus = { execute: vi.fn() } as unknown as Mocked<QueryBus>;
     commandBus = { execute: vi.fn() } as unknown as Mocked<CommandBus>;
-    controller = new NotificationController(queryBus, commandBus);
+    notificationRestMapper = {
+      toResponseDtoFromResult: vi.fn(),
+    } as unknown as Mocked<NotificationRestMapper>;
+    controller = new NotificationController(
+      queryBus,
+      commandBus,
+      notificationRestMapper,
+    );
   });
 
   it('dispatches NotificationFindByIdQuery with the requested id', async () => {
@@ -109,14 +119,19 @@ describe('NotificationController', () => {
     );
   });
 
-  it('maps the CommandBus result id to the create response', async () => {
+  it('maps the CommandBus result to the create response via the REST mapper', async () => {
     const dto = buildCreateRequestDto();
-    commandBus.execute.mockResolvedValue({
-      id: '44444444-4444-4444-8444-444444444444',
-    });
+    const commandResult = { id: '44444444-4444-4444-8444-444444444444' };
+    const responseDto = new NotificationCreateResponseDto();
+    responseDto.id = commandResult.id;
+    commandBus.execute.mockResolvedValue(commandResult);
+    notificationRestMapper.toResponseDtoFromResult.mockReturnValue(responseDto);
 
     const result = await controller.create(dto);
 
-    expect(result).toEqual({ id: '44444444-4444-4444-8444-444444444444' });
+    expect(notificationRestMapper.toResponseDtoFromResult).toHaveBeenCalledWith(
+      commandResult,
+    );
+    expect(result).toBe(responseDto);
   });
 });

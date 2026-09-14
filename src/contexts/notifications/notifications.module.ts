@@ -30,7 +30,8 @@ import { NotificationGraphQLMapper } from '@contexts/notifications/transport/gra
 import { NotificationQueriesResolver } from '@contexts/notifications/transport/graphql/resolvers/queries/notification-queries.resolver';
 import { NotificationIngestConsumer } from '@contexts/notifications/transport/kafka/consumers/notification-ingest.consumer';
 import { NotificationDeliveryProcessor } from '@contexts/notifications/transport/queue/processors/notification-delivery.processor';
-import { NotificationController } from '@contexts/notifications/transport/rest/notification.controller';
+import { NotificationController } from '@contexts/notifications/transport/rest/controllers/notification.controller';
+import { NotificationRestMapper } from '@contexts/notifications/transport/rest/mappers/notification.mapper';
 
 const COMMAND_HANDLERS = [
   CreateNotificationCommandHandler,
@@ -66,6 +67,7 @@ const GRAPHQL_PROVIDERS = [
   NotificationQueriesResolver,
   NotificationGraphQLMapper,
 ];
+const REST_PROVIDERS = [NotificationRestMapper];
 const KAFKA_CONSUMERS = [NotificationIngestConsumer];
 const QUEUE_PROCESSORS = [NotificationDeliveryProcessor];
 
@@ -87,6 +89,7 @@ const QUEUE_PROCESSORS = [NotificationDeliveryProcessor];
     ...INFRASTRUCTURE_MAPPERS,
     ...INFRASTRUCTURE_REPOSITORIES,
     ...GRAPHQL_PROVIDERS,
+    ...REST_PROVIDERS,
     ...KAFKA_CONSUMERS,
     ...QUEUE_PROCESSORS,
   ],

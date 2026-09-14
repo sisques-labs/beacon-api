@@ -17,6 +17,7 @@ import { NotificationViewModel } from '@contexts/notifications/domain/view-model
 import { NotificationCreateRequestDto } from '@contexts/notifications/transport/rest/dtos/notification-create-request.dto';
 import { NotificationCreateResponseDto } from '@contexts/notifications/transport/rest/dtos/notification-create-response.dto';
 import { NotificationResponseDto } from '@contexts/notifications/transport/rest/dtos/notification-response.dto';
+import { NotificationRestMapper } from '@contexts/notifications/transport/rest/mappers/notification.mapper';
 
 @ApiTags('notifications')
 @Controller('notifications')
@@ -26,6 +27,7 @@ export class NotificationController {
   constructor(
     private readonly queryBus: QueryBus,
     private readonly commandBus: CommandBus,
+    private readonly notificationRestMapper: NotificationRestMapper,
   ) {}
 
   @Get(':id')
@@ -64,6 +66,6 @@ export class NotificationController {
         dedupeKey: dto.dedupeKey,
       }),
     );
-    return new NotificationCreateResponseDto(result);
+    return this.notificationRestMapper.toResponseDtoFromResult(result);
   }
 }
