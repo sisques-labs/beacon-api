@@ -29,6 +29,7 @@ import { NotificationTypeormWriteRepository } from '@contexts/notifications/infr
 import { NotificationGraphQLMapper } from '@contexts/notifications/transport/graphql/mappers/notification.mapper';
 import { NotificationQueriesResolver } from '@contexts/notifications/transport/graphql/resolvers/queries/notification-queries.resolver';
 import { NotificationIngestConsumer } from '@contexts/notifications/transport/kafka/consumers/notification-ingest.consumer';
+import { NotificationDeliveryProcessor } from '@contexts/notifications/transport/queue/processors/notification-delivery.processor';
 import { NotificationController } from '@contexts/notifications/transport/rest/notification.controller';
 
 const COMMAND_HANDLERS = [
@@ -66,6 +67,7 @@ const GRAPHQL_PROVIDERS = [
   NotificationGraphQLMapper,
 ];
 const KAFKA_CONSUMERS = [NotificationIngestConsumer];
+const QUEUE_PROCESSORS = [NotificationDeliveryProcessor];
 
 @Module({
   imports: [
@@ -86,6 +88,7 @@ const KAFKA_CONSUMERS = [NotificationIngestConsumer];
     ...INFRASTRUCTURE_REPOSITORIES,
     ...GRAPHQL_PROVIDERS,
     ...KAFKA_CONSUMERS,
+    ...QUEUE_PROCESSORS,
   ],
 })
 export class NotificationsModule {}

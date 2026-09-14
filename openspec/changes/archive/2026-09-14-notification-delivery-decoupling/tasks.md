@@ -53,23 +53,23 @@ Chain strategy: pending
 
 ## Phase 3: Retry-Fix & Duplicate Guard
 
-- [ ] 3.1 Create `.../domain/exceptions/notification-delivery-failed.exception.ts`
-- [ ] 3.2 Modify `deliver-notification.command.ts` — add `isFinalAttempt: boolean`
-- [ ] 3.3 RED extend `deliver-notification.handler.spec.ts` — D5 status guard; non-final throws without `fail()`; final `fail()`+save+publish then throws
-- [ ] 3.4 GREEN Modify `deliver-notification.handler.ts` — D5 guard + D4 throw-vs-`fail()` branch
-- [ ] 3.5 RED extend `deliver-notification-on-created.handler.spec.ts` — asserts `enqueue()`, never `commandBus.execute`
-- [ ] 3.6 GREEN Modify `deliver-notification-on-created.handler.ts` — inject port, `enqueue(event.data.id)`
-- [ ] 3.7 RED `.../transport/queue/processors/notification-delivery.processor.spec.ts` — derives `isFinalAttempt`, dispatches, rethrows
-- [ ] 3.8 GREEN Create `.../transport/queue/processors/notification-delivery.processor.ts` — `@Processor`/`WorkerHost`
-- [ ] 3.9 Modify `notifications.module.ts` — register processor
+- [x] 3.1 Create `.../domain/exceptions/notification-delivery-failed.exception.ts`
+- [x] 3.2 Modify `deliver-notification.command.ts` — add `isFinalAttempt: boolean`
+- [x] 3.3 RED extend `deliver-notification.handler.spec.ts` — D5 status guard; non-final throws without `fail()`; final `fail()`+save+publish then throws
+- [x] 3.4 GREEN Modify `deliver-notification.handler.ts` — D5 guard + D4 throw-vs-`fail()` branch
+- [x] 3.5 RED extend `deliver-notification-on-created.handler.spec.ts` — asserts `enqueue()`, never `commandBus.execute`
+- [x] 3.6 GREEN Modify `deliver-notification-on-created.handler.ts` — inject port, `enqueue(event.data.id)`
+- [x] 3.7 RED `.../transport/queue/processors/notification-delivery.processor.spec.ts` — derives `isFinalAttempt`, dispatches, rethrows
+- [x] 3.8 GREEN Create `.../transport/queue/processors/notification-delivery.processor.ts` — `@Processor`/`WorkerHost`
+- [x] 3.9 Modify `notifications.module.ts` — register processor
 
 ## Phase 4: E2E & Docs
 
-- [ ] 4.1 Create `test/helpers/queue-drain.ts` — `waitForQueueDrained(queue)` polling job counts
-- [ ] 4.2 Modify `test/notification-delivery.e2e-spec.ts` — test-profile env (attempts=3, backoff=10ms), timeout 3000→10000, `queue.obliterate()` in `beforeEach`, rewrite "never retries" to exhausted-retry assertion
-- [ ] 4.3 Add e2e scenario: crash-between-enqueue-and-delivery still reaches terminal status
-- [ ] 4.4 Modify `src/contexts/notifications/README.md` — document `NOTIFICATION_DELIVERY_QUEUE_*` vars
-- [ ] 4.5 Modify `src/core/README.md` — document `REDIS_*` vars and health indicator
+- [x] 4.1 Create `test/helpers/queue-drain.ts` — `waitForQueueDrained(queue)` polling job counts
+- [x] 4.2 Modify `test/notification-delivery.e2e-spec.ts` — test-profile env (attempts=3, backoff=10ms), timeout 3000→10000, `queue.obliterate()` in `beforeEach`, rewrite "never retries" to exhausted-retry assertion
+- [x] 4.3 Add e2e scenario: crash-between-enqueue-and-delivery still reaches terminal status
+- [x] 4.4 Modify `src/contexts/notifications/README.md` — document `NOTIFICATION_DELIVERY_QUEUE_*` vars
+- [x] 4.5 Modify `src/core/README.md` — document `REDIS_*` vars and health indicator
 
 ## Key Learnings
 
