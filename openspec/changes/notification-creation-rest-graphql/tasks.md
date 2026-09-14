@@ -42,7 +42,7 @@ Chain strategy: stacked-to-main
 
 ## Phase 3: E2E + docs (PR 3, all four spec scenarios, both transports)
 
-- [ ] 3.1 RED: `test/notification-create.e2e-spec.ts` — REST/GraphQL happy path (201/id), dedupe replay same id no 2nd row, cross-transport dedupe, invalid-input rejection both transports, D5 non-DISCORD rejection both transports; model on `notification-find-by-id.e2e-spec.ts` + `notification-ingest.e2e-spec.ts`, stub Discord webhook per `notification-delivery.e2e-spec.ts`
-- [ ] 3.2 GREEN: confirm Phase 1+2 code satisfies 3.1 with no further prod changes; fix only if a real gap surfaces
-- [ ] 3.3 Update `src/contexts/notifications/README.md` — document REST/GraphQL creation surface, DISCORD-only constraint (D5), unauthenticated-write tradeoff (D7)
-- [ ] 3.4 Run `pnpm test`, `pnpm test:integration`, `pnpm test:e2e`, `pnpm lint`, `pnpm build`; confirm coverage >= 80%
+- [x] 3.1 RED: `test/notification-create.e2e-spec.ts` — REST/GraphQL happy path (201/id), dedupe replay same id no 2nd row, cross-transport dedupe, invalid-input rejection both transports, D5 non-DISCORD rejection both transports; model on `notification-find-by-id.e2e-spec.ts` + `notification-ingest.e2e-spec.ts`, stub Discord webhook per `notification-delivery.e2e-spec.ts`
+- [x] 3.2 GREEN: confirm Phase 1+2 code satisfies 3.1 with no further prod changes; fix only if a real gap surfaces
+- [x] 3.3 Update `src/contexts/notifications/README.md` — document REST/GraphQL creation surface, DISCORD-only constraint (D5), unauthenticated-write tradeoff (D7)
+- [x] 3.4 Run `pnpm test`, `pnpm test:integration`, `pnpm test:e2e`, `pnpm lint`, `pnpm build`; confirm coverage >= 80%
