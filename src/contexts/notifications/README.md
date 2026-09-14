@@ -3,11 +3,10 @@
 The first bounded context in this service. It defines the pattern every
 subsequent context follows — see `.claude/skills/architecture/SKILL.md`.
 
-## Current state (Phase 3 — persistence + Kafka ingestion + Discord delivery + get-by-id query)
+## Current state (persistence + Kafka ingestion + durable, retrying Discord delivery + get-by-id query)
 
-This is the complete `beacon-mvp` slice: `NotificationAggregate` is
-persistable, ingestible from Kafka, delivered to Discord, and queryable by
-id.
+`NotificationAggregate` is persistable, ingestible from Kafka, durably
+delivered to Discord with retry/backoff, and queryable by id.
 
 ### Domain
 
@@ -69,18 +68,42 @@ id.
   accepted MVP risk; broker ACLs are the only control (see
   `openspec/changes/beacon-mvp/proposal.md`).
 
-### Delivery: Discord webhook
+### Delivery: durable, retrying Discord webhook
+
+Delivery is decoupled from ingestion twice over: creation publishes an
+in-process domain event, and that event handler enqueues a **durable,
+Redis-backed job** instead of dispatching the delivery command directly, so
+a transient webhook failure or a mid-delivery process crash never leaves a
+notification permanently `PENDING` (see
+`openspec/changes/notification-delivery-decoupling/design.md`).
 
 - `DeliverNotificationOnCreatedHandler` (`application/events/`) —
-  `@EventsHandler(NotificationCreatedEvent)`; dispatches
-  `DeliverNotificationCommand` for the newly created notification.
-  Asynchronous by design (design.md D2): ingestion never awaits delivery.
+  `@EventsHandler(NotificationCreatedEvent)`; calls
+  `INotificationDeliveryQueuePort.enqueue(notificationId)`. Asynchronous by
+  design (design.md D2): ingestion never awaits delivery.
+- `INotificationDeliveryQueuePort` (`application/ports/notification-delivery-queue.port.ts`,
+  token `NOTIFICATION_DELIVERY_QUEUE_PORT`) — durable enqueue contract.
+  `BullMqNotificationDeliveryQueueAdapter` (`infrastructure/adapters/`) is
+  its BullMQ/Redis implementation: the job payload is `{ notificationId }`
+  only (no notification content ever reaches Redis — design.md D2), and
+  `jobId = notificationId` makes enqueue idempotent for the job's lifetime.
+- `NotificationDeliveryProcessor` (`transport/queue/processors/`) — an
+  in-process `@Processor`/`WorkerHost` (bus-only, like
+  `NotificationIngestConsumer`) that consumes the queue, derives
+  `isFinalAttempt` from `job.attemptsMade + 1 >= job.opts.attempts`, and
+  dispatches the unchanged `DeliverNotificationCommand` through
+  `CommandBus`. This is the only place BullMQ job state is allowed to leak
+  outside transport (design.md D4).
 - `DeliverNotificationCommand` / `DeliverNotificationCommandHandler`
   (`application/commands/deliver-notification/`) — loads the aggregate by
-  id, calls `INotificationSenderPort.send()`, then drives the terminal
-  transition: `aggregate.sent()` on success, `aggregate.fail(reason)` on
-  failure (network error or non-2xx response). `FAILED` is terminal by
-  existing domain design — **no retry** is attempted.
+  id, guards against duplicate sends (D5: if the aggregate is no longer
+  `PENDING`, logs and returns without calling the sender), then calls
+  `INotificationSenderPort.send()`. On success: `aggregate.sent()` + save +
+  publish. On failure: throws `NotificationDeliveryFailedException` so
+  BullMQ retries — only on `isFinalAttempt` does it first run
+  `aggregate.fail(reason)` + save + publish, then still throws so the job
+  also lands in BullMQ's failed set for ops inspection (design.md D4).
+  `FAILED` is the exhausted-retry terminal, not the first-error terminal.
 - `INotificationSenderPort` (`application/ports/notification-sender.port.ts`,
   token `NOTIFICATION_SENDER_PORT`) — one sender per channel; only `DISCORD`
   has an implementation in this change. `EMAIL`/`PUSH` remain out of scope,
@@ -93,6 +116,18 @@ id.
   sends every `DISCORD` notification to this one fixed destination; there is
   no per-tenant or per-notification Discord routing. Logs start and
   completion of every webhook POST.
+- **Retry policy** — `attempts: 5`, exponential backoff starting at
+  `5000`ms (5s/10s/20s/40s, terminal at ≈75s), both env-tunable via
+  `notificationDeliveryQueueConfig`
+  (`infrastructure/config/notification-delivery-queue.config.ts`):
+  - `NOTIFICATION_DELIVERY_QUEUE_NAME` (default `notification-delivery`)
+  - `NOTIFICATION_DELIVERY_QUEUE_ATTEMPTS` (default `5`)
+  - `NOTIFICATION_DELIVERY_QUEUE_BACKOFF_MS` (default `5000`)
+- **No new notification status** — `PENDING` spans the entire retry window
+  (design.md D1); attempt count is not queryable over REST/GraphQL, only via
+  BullMQ/Redis directly.
+- Requires Redis — see `src/core/README.md` for connection config and the
+  readiness health check.
 
 ### Query: get notification by id
 
@@ -110,6 +145,11 @@ id.
 
 ## Out of scope for this context (v1)
 
+- Exactly-once delivery — at-least-once is accepted (design.md D5); the D5
+  guard closes the observable duplicate window (a concurrently-succeeded or
+  stalled-job-redelivered attempt), but a true partial-success window
+  (Discord accepted the POST, the response was lost) stays open since
+  Discord webhooks expose no idempotency key.
 - Email and Push channels — no sender/adapter exists for them.
 - Authentication on the ingestion topic (accepted MVP risk, see
   `openspec/changes/beacon-mvp/proposal.md`).

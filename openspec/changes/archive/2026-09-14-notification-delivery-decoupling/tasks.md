@@ -65,11 +65,11 @@ Chain strategy: pending
 
 ## Phase 4: E2E & Docs
 
-- [ ] 4.1 Create `test/helpers/queue-drain.ts` — `waitForQueueDrained(queue)` polling job counts
-- [ ] 4.2 Modify `test/notification-delivery.e2e-spec.ts` — test-profile env (attempts=3, backoff=10ms), timeout 3000→10000, `queue.obliterate()` in `beforeEach`, rewrite "never retries" to exhausted-retry assertion
-- [ ] 4.3 Add e2e scenario: crash-between-enqueue-and-delivery still reaches terminal status
-- [ ] 4.4 Modify `src/contexts/notifications/README.md` — document `NOTIFICATION_DELIVERY_QUEUE_*` vars
-- [ ] 4.5 Modify `src/core/README.md` — document `REDIS_*` vars and health indicator
+- [x] 4.1 Create `test/helpers/queue-drain.ts` — `waitForQueueDrained(queue)` polling job counts
+- [x] 4.2 Modify `test/notification-delivery.e2e-spec.ts` — test-profile env (attempts=3, backoff=10ms), timeout 3000→10000, `queue.obliterate()` in `beforeEach`, rewrite "never retries" to exhausted-retry assertion
+- [x] 4.3 Add e2e scenario: crash-between-enqueue-and-delivery still reaches terminal status
+- [x] 4.4 Modify `src/contexts/notifications/README.md` — document `NOTIFICATION_DELIVERY_QUEUE_*` vars
+- [x] 4.5 Modify `src/core/README.md` — document `REDIS_*` vars and health indicator
 
 ## Key Learnings
 
