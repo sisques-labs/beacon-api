@@ -3,10 +3,11 @@
 The first bounded context in this service. It defines the pattern every
 subsequent context follows — see `.claude/skills/architecture/SKILL.md`.
 
-## Current state (persistence + Kafka ingestion + durable, retrying Discord delivery + get-by-id query)
+## Current state (persistence + Kafka ingestion + synchronous REST/GraphQL creation + durable, retrying Discord delivery + get-by-id query)
 
-`NotificationAggregate` is persistable, ingestible from Kafka, durably
-delivered to Discord with retry/backoff, and queryable by id.
+`NotificationAggregate` is persistable, ingestible from Kafka, creatable
+synchronously over REST and GraphQL, durably delivered to Discord with
+retry/backoff, and queryable by id.
 
 ### Domain
 
@@ -67,6 +68,51 @@ delivered to Discord with retry/backoff, and queryable by id.
 - **No authentication** on the ingestion topic in v1 — an explicitly
   accepted MVP risk; broker ACLs are the only control (see
   `openspec/changes/beacon-mvp/proposal.md`).
+
+### Creation: synchronous REST and GraphQL
+
+Two thin transport adapters dispatch the same, unchanged
+`CreateNotificationCommand` / `CreateNotificationCommandHandler` used by Kafka
+ingestion above — creation semantics (validation, dedupe-idempotency) stay
+single-sourced in the application layer regardless of entry point (see
+`openspec/changes/notification-creation-rest-graphql/design.md`).
+
+- **REST**: `POST /api/v1/notifications` (`NotificationController.create`) —
+  validates `NotificationCreateRequestDto`, dispatches
+  `CreateNotificationCommand` via `CommandBus`, responds `201 Created` +
+  `NotificationCreateResponseDto { id }`.
+- **GraphQL**: `mutation { notificationCreate(input: { ... }) { success id
+  message } }` (`NotificationMutationsResolver`, the service's first mutation
+  resolver) — validates a mirroring `@InputType()` DTO, dispatches the same
+  command, maps the result through the global
+  `MutationResponseGraphQLMapper` (`success`, `id`, `message`).
+- **DISCORD-only on the write path**: both DTOs accept the domain
+  `NotificationChannelEnum` but constrain the value to `DISCORD`
+  (`@IsIn([NotificationChannelEnum.DISCORD])`), rejecting `EMAIL`/`PUSH` with
+  a 400 (REST) or a GraphQL validation error. Delivery has no channel branch
+  — every created notification is sent to Discord — so a synchronous caller
+  gets an explicit rejection instead of the silent skip the Kafka consumer
+  applies to a fire-and-forget broker message.
+- **Dedupe-idempotent on both transports**: repeating either call with the
+  same `(tenantId, dedupeKey)` creates no second notification and returns
+  the id of the originally created one — this is the existing
+  `findByDedupeKey` pre-check plus `NotificationDedupeKeyAlreadyExistsException`
+  race recovery in `CreateNotificationCommandHandler`, unchanged and shared
+  across Kafka, REST, and GraphQL. Cross-transport replay (create via one
+  transport, repeat via the other with the same pair) is idempotent too,
+  since both dispatch the identical command against the identical dedupe
+  check.
+- **Unauthenticated write surface (deliberate tradeoff)**: neither entry
+  point has `@UseGuards(JwtAuthGuard)`. This matches today's unguarded
+  query-side precedent (`GET :id` / `notificationFindById`) and keeps this
+  change transport-only, but a synchronous HTTP/GraphQL write is a larger
+  exposure than a broker topic. A follow-up change MUST decide an auth
+  strategy for synchronous writes and apply `JwtAuthGuard`
+  (`@sisques-labs/nestjs-kit/auth-client`, already wired in `CoreModule`).
+- E2E coverage: `test/notification-create.e2e-spec.ts` — happy path on both
+  transports, same-transport and cross-transport dedupe replay, invalid-input
+  rejection, and D5 channel rejection, all asserted against real Postgres
+  rows.
 
 ### Delivery: durable, retrying Discord webhook
 
