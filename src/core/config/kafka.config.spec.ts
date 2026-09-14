@@ -24,9 +24,9 @@ describe('kafkaConfig', () => {
 
     expect(config).toEqual({
       enabled: false,
-      clientId: 'nestjs-template',
+      clientId: 'beacon-api',
       brokers: [],
-      topicPrefix: 'nestjs-template',
+      topicPrefix: 'beacon-api',
       ssl: false,
       sasl: null,
     });

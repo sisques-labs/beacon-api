@@ -7,7 +7,7 @@ import { WinstonModule } from 'nest-winston';
   imports: [
     WinstonModule.forRoot(
       createSharedWinstonLoggerOptions({
-        service: 'nestjs-template',
+        service: 'beacon-api',
         // Forwards every log line into the OpenTelemetry Logs pipeline
         // (src/telemetry.ts) alongside the existing console/file transports.
         // A no-op when OTEL_EXPORTER_OTLP_ENDPOINT is unset.

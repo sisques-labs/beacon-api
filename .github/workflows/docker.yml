@@ -15,7 +15,7 @@ jobs:
   docker:
     uses: sisques-labs/workflows/.github/workflows/docker-smoke-build.yml@main
     with:
-      image_name: nestjs-template
+      image_name: beacon-api
       platforms: linux/amd64,linux/arm64
       scan_image: true
     permissions:

@@ -26,5 +26,25 @@ process.env.DATABASE_USERNAME = process.env.DATABASE_USERNAME ?? 'postgres';
 process.env.DATABASE_PASSWORD = process.env.DATABASE_PASSWORD ?? 'postgres';
 process.env.DATABASE_DATABASE =
   process.env.DATABASE_DATABASE ?? 'nestjs_template_test';
+// Migrations are already applied once by `bootstrapTestDataSource()` (see
+// test-data-source.ts) before the app boots. Letting the app's own
+// TypeOrmModule re-run them from the `.ts` glob on every E2E/integration
+// bootstrap is redundant and, under Vitest's ESM loader, can race with the
+// already-imported migration module (`Cannot require() ES Module ... not yet
+// fully loaded`) — so it stays disabled here.
+process.env.DATABASE_MIGRATIONS_RUN =
+  process.env.DATABASE_MIGRATIONS_RUN ?? 'false';
+process.env.REDIS_HOST = process.env.REDIS_HOST ?? 'localhost';
+process.env.REDIS_PORT = process.env.REDIS_PORT ?? '6382';
+// Test-profile queue knobs (design.md D9): exhaustion costs ~30ms of backoff
+// instead of ~75s, and each test file gets its own queue name so parallel
+// e2e/integration runs never consume each other's jobs.
+process.env.NOTIFICATION_DELIVERY_QUEUE_ATTEMPTS =
+  process.env.NOTIFICATION_DELIVERY_QUEUE_ATTEMPTS ?? '3';
+process.env.NOTIFICATION_DELIVERY_QUEUE_BACKOFF_MS =
+  process.env.NOTIFICATION_DELIVERY_QUEUE_BACKOFF_MS ?? '10';
 process.env.FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:3001';
+process.env.DISCORD_WEBHOOK_URL =
+  process.env.DISCORD_WEBHOOK_URL ??
+  'https://discord.com/api/webhooks/000000000000000000/test-webhook-token';
 process.env.NODE_ENV = 'test';

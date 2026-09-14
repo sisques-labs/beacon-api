@@ -11,6 +11,7 @@ function validEnv(
     DATABASE_USERNAME: 'postgres',
     DATABASE_PASSWORD: 'secret',
     DATABASE_DATABASE: 'nestjs_template_db',
+    REDIS_HOST: 'localhost',
     ...overrides,
   };
 }
@@ -36,6 +37,28 @@ describe('validateEnv', () => {
     );
   });
 
+  it('rejects missing REDIS_HOST', () => {
+    const env = validEnv({ REDIS_HOST: '' });
+
+    expect(() => validateEnv(env)).toThrow(
+      /Environment validation failed:[\s\S]*REDIS_HOST/,
+    );
+  });
+
+  it('accepts REDIS_HOST alone, with port/password/db left unset', () => {
+    expect(() => validateEnv(validEnv())).not.toThrow();
+  });
+
+  it('accepts custom REDIS_PORT, REDIS_PASSWORD and REDIS_DB alongside REDIS_HOST', () => {
+    const env = validEnv({
+      REDIS_PORT: '6380',
+      REDIS_PASSWORD: 'secret',
+      REDIS_DB: '1',
+    });
+
+    expect(() => validateEnv(env)).not.toThrow();
+  });
+
   it('rejects KAFKA_ENABLED=true without KAFKA_BROKERS', () => {
     const env = validEnv({ KAFKA_ENABLED: 'true' });
 
@@ -47,6 +70,23 @@ describe('validateEnv', () => {
   it('accepts KAFKA_ENABLED=true with KAFKA_BROKERS set', () => {
     const env = validEnv({
       KAFKA_ENABLED: 'true',
+      KAFKA_BROKERS: 'localhost:9092',
+    });
+
+    expect(() => validateEnv(env)).not.toThrow();
+  });
+
+  it('rejects KAFKA_INGEST_ENABLED=true without KAFKA_BROKERS', () => {
+    const env = validEnv({ KAFKA_INGEST_ENABLED: 'true' });
+
+    expect(() => validateEnv(env)).toThrow(
+      /KAFKA_BROKERS is required when KAFKA_INGEST_ENABLED is "true"/,
+    );
+  });
+
+  it('accepts KAFKA_INGEST_ENABLED=true with KAFKA_BROKERS set', () => {
+    const env = validEnv({
+      KAFKA_INGEST_ENABLED: 'true',
       KAFKA_BROKERS: 'localhost:9092',
     });
 
@@ -94,6 +134,22 @@ describe('validateEnv', () => {
     });
 
     expect(() => validateEnv(env)).not.toThrow();
+  });
+
+  it('accepts a valid DISCORD_WEBHOOK_URL', () => {
+    const env = validEnv({
+      DISCORD_WEBHOOK_URL: 'https://discord.com/api/webhooks/123/abc',
+    });
+
+    expect(() => validateEnv(env)).not.toThrow();
+  });
+
+  it('rejects a non-URL DISCORD_WEBHOOK_URL', () => {
+    const env = validEnv({ DISCORD_WEBHOOK_URL: 'not-a-url' });
+
+    expect(() => validateEnv(env)).toThrow(
+      /Environment validation failed:[\s\S]*DISCORD_WEBHOOK_URL/,
+    );
   });
 
   it('formats a root-level issue without a field path', () => {
