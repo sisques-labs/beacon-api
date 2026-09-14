@@ -26,6 +26,13 @@ const baseEnvSchema = z
       .string()
       .trim()
       .min(1, 'DATABASE_DATABASE must not be empty'),
+    REDIS_HOST: z.string().trim().min(1, 'REDIS_HOST must not be empty'),
+    REDIS_PORT: z.string().optional(),
+    REDIS_PASSWORD: z.string().optional(),
+    REDIS_DB: z.string().optional(),
+    NOTIFICATION_DELIVERY_QUEUE_NAME: z.string().optional(),
+    NOTIFICATION_DELIVERY_QUEUE_ATTEMPTS: z.string().optional(),
+    NOTIFICATION_DELIVERY_QUEUE_BACKOFF_MS: z.string().optional(),
     OTEL_EXPORTER_OTLP_ENDPOINT: z.string().trim().url().optional(),
     OTEL_SERVICE_NAME: z.string().optional(),
     OTEL_TRACES_SAMPLE_RATIO: z.coerce.number().min(0).max(1).optional(),
@@ -40,6 +47,10 @@ const baseEnvSchema = z
       .optional(),
     KAFKA_SASL_USERNAME: z.string().optional(),
     KAFKA_SASL_PASSWORD: z.string().optional(),
+    KAFKA_INGEST_ENABLED: z.enum(['true', 'false']).optional(),
+    KAFKA_INGEST_TOPIC: z.string().optional(),
+    KAFKA_INGEST_GROUP_ID: z.string().optional(),
+    DISCORD_WEBHOOK_URL: z.string().trim().url().optional(),
     EVENTSTORE_ENABLED: z.enum(['true', 'false']).optional(),
     EVENTSTORE_CONNECTION_STRING: z.string().optional(),
     EVENTSTORE_STREAM_PREFIX: z.string().optional(),
@@ -52,6 +63,15 @@ const baseEnvSchema = z
         code: z.ZodIssueCode.custom,
         path: ['KAFKA_BROKERS'],
         message: 'KAFKA_BROKERS is required when KAFKA_ENABLED is "true"',
+      });
+    }
+
+    if (env.KAFKA_INGEST_ENABLED === 'true' && !env.KAFKA_BROKERS?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['KAFKA_BROKERS'],
+        message:
+          'KAFKA_BROKERS is required when KAFKA_INGEST_ENABLED is "true"',
       });
     }
 

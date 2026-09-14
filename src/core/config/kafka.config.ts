@@ -33,9 +33,9 @@ function resolveSasl(): IKafkaSaslConfig | null {
 export const kafkaConfig = registerAs('kafka', (): IKafkaConfig => {
   return {
     enabled: process.env.KAFKA_ENABLED === 'true',
-    clientId: process.env.KAFKA_CLIENT_ID?.trim() || 'nestjs-template',
+    clientId: process.env.KAFKA_CLIENT_ID?.trim() || 'beacon-api',
     brokers: parseBrokers(process.env.KAFKA_BROKERS),
-    topicPrefix: process.env.KAFKA_TOPIC_PREFIX?.trim() || 'nestjs-template',
+    topicPrefix: process.env.KAFKA_TOPIC_PREFIX?.trim() || 'beacon-api',
     ssl: process.env.KAFKA_SSL === 'true',
     sasl: resolveSasl(),
   };

@@ -7,6 +7,7 @@ import {
   TypeOrmHealthIndicator,
 } from '@nestjs/terminus';
 
+import { RedisHealthIndicator } from '@core/health/indicators/redis.health-indicator';
 import { HealthResponseDto } from '@core/health/transport/rest/dtos/health-response.dto';
 
 @ApiTags('health')
@@ -17,6 +18,7 @@ export class HealthController {
   constructor(
     private readonly health: HealthCheckService,
     private readonly db: TypeOrmHealthIndicator,
+    private readonly redis: RedisHealthIndicator,
   ) {}
 
   @Get()
@@ -46,10 +48,13 @@ export class HealthController {
   @Get('ready')
   @HealthCheck()
   @ApiOperation({
-    summary: 'Readiness probe — verifies the database connection',
+    summary: 'Readiness probe — verifies the database and Redis connections',
   })
   ready(): Promise<HealthCheckResult> {
     this.logger.debug('Readiness check called');
-    return this.health.check([() => this.db.pingCheck('database')]);
+    return this.health.check([
+      () => this.db.pingCheck('database'),
+      () => this.redis.pingCheck('redis'),
+    ]);
   }
 }

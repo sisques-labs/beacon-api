@@ -1,4 +1,4 @@
-# NestJS Template
+# Beacon Api
 
 Sisques Labs' base template for new NestJS services: **DDD + CQRS + Hexagonal**
 architecture, TypeORM/PostgreSQL, optional Kafka event forwarding, REST
@@ -22,7 +22,7 @@ every subsequent one follows (see the `architecture` skill in
    scripts/rename-service.sh orders-api "Orders API"
    pnpm install
    ```
-   This rewrites every occurrence of `nestjs-template` / `NestJS Template` —
+   This rewrites every occurrence of `beacon-api` / `Beacon Api` —
    `package.json`, Docker image names in `.github/workflows/`, the Kafka
    client id/topic prefix defaults, the default `OTEL_SERVICE_NAME`, the MCP
    server name, docker-compose database names, and this README.

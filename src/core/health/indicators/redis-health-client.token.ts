@@ -1,0 +1,1 @@
+export const REDIS_HEALTH_CLIENT = Symbol('REDIS_HEALTH_CLIENT');

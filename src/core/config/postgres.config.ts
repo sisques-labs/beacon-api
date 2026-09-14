@@ -14,6 +14,15 @@ export const postgresConfig = registerAs(
     synchronize: process.env.DATABASE_SYNCHRONIZE === 'true',
     autoLoadEntities: true,
     migrationsRun: process.env.DATABASE_MIGRATIONS_RUN !== 'false',
-    migrations: [join(__dirname, '../../database/migrations/*{.ts,.js}')],
+    // In tests, `test/helpers/test-data-source.ts` already applies
+    // migrations against the test DB via `bootstrapTestDataSource()` before
+    // the app boots. Also glob-loading the same `.ts` migration files here
+    // races with that separate load under Node's ESM/CJS require() interop
+    // ("Cannot require() ES Module ... not yet fully loaded"), so this
+    // DataSource stays migration-file-free in `NODE_ENV=test`.
+    migrations:
+      process.env.NODE_ENV === 'test'
+        ? []
+        : [join(__dirname, '../../database/migrations/*{.ts,.js}')],
   }),
 );

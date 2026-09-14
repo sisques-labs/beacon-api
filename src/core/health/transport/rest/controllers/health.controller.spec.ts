@@ -5,12 +5,14 @@ import {
 } from '@nestjs/terminus';
 import { Mocked, vi } from 'vitest';
 
+import { RedisHealthIndicator } from '@core/health/indicators/redis.health-indicator';
 import { HealthController } from '@core/health/transport/rest/controllers/health.controller';
 
 describe('HealthController', () => {
   let controller: HealthController;
   let health: Mocked<HealthCheckService>;
   let db: Mocked<TypeOrmHealthIndicator>;
+  let redis: Mocked<RedisHealthIndicator>;
 
   beforeEach(() => {
     health = {
@@ -19,7 +21,10 @@ describe('HealthController', () => {
     db = {
       pingCheck: vi.fn(),
     } as unknown as Mocked<TypeOrmHealthIndicator>;
-    controller = new HealthController(health, db);
+    redis = {
+      pingCheck: vi.fn(),
+    } as unknown as Mocked<RedisHealthIndicator>;
+    controller = new HealthController(health, db, redis);
   });
 
   describe('check() / live()', () => {
@@ -41,18 +46,21 @@ describe('HealthController', () => {
   });
 
   describe('ready()', () => {
-    it('delegates to HealthCheckService with a database ping', async () => {
+    it('delegates to HealthCheckService with database and redis pings', async () => {
       const result: HealthCheckResult = {
         status: 'ok',
-        info: { database: { status: 'up' } },
+        info: { database: { status: 'up' }, redis: { status: 'up' } },
         error: {},
-        details: { database: { status: 'up' } },
+        details: { database: { status: 'up' }, redis: { status: 'up' } },
       };
       health.check.mockResolvedValue(result);
 
       const response = await controller.ready();
 
-      expect(health.check).toHaveBeenCalledWith([expect.any(Function)]);
+      expect(health.check).toHaveBeenCalledWith([
+        expect.any(Function),
+        expect.any(Function),
+      ]);
       expect(response).toBe(result);
     });
 
@@ -64,10 +72,26 @@ describe('HealthController', () => {
         return { status: 'ok', info: {}, error: {}, details: {} };
       });
       db.pingCheck.mockResolvedValue({ database: { status: 'up' } });
+      redis.pingCheck.mockResolvedValue({ redis: { status: 'up' } });
 
       await controller.ready();
 
       expect(db.pingCheck).toHaveBeenCalledWith('database');
+    });
+
+    it('invokes the redis ping indicator', async () => {
+      health.check.mockImplementation(async (indicators) => {
+        for (const indicator of indicators) {
+          await indicator();
+        }
+        return { status: 'ok', info: {}, error: {}, details: {} };
+      });
+      db.pingCheck.mockResolvedValue({ database: { status: 'up' } });
+      redis.pingCheck.mockResolvedValue({ redis: { status: 'up' } });
+
+      await controller.ready();
+
+      expect(redis.pingCheck).toHaveBeenCalledWith('redis');
     });
   });
 });
