@@ -6,6 +6,8 @@ import {
   INotificationSenderPort,
   NOTIFICATION_SENDER_PORT,
 } from '@contexts/notifications/application/ports/notification-sender.port';
+import { NotificationStatusEnum } from '@contexts/notifications/domain/enums/notification-status.enum';
+import { NotificationDeliveryFailedException } from '@contexts/notifications/domain/exceptions/notification-delivery-failed.exception';
 import {
   INotificationWriteRepository,
   NOTIFICATION_WRITE_REPOSITORY,
@@ -38,18 +40,48 @@ export class DeliverNotificationCommandHandler
         command.notificationId.value,
       );
 
+    // D5 — duplicate-send guard: a concurrently-succeeded attempt already
+    // moved this aggregate out of PENDING (e.g. a stalled-job re-delivery
+    // after lock expiry), so skip re-sending rather than let sent()/fail()
+    // throw InvalidNotificationStatusTransitionException on an
+    // already-terminal aggregate.
+    if (notification.status.value !== NotificationStatusEnum.PENDING) {
+      this.logger.log(
+        `Skipping delivery for notification ${notification.id.value}: already ${notification.status.value}`,
+      );
+      return;
+    }
+
     const result = await this.senderPort.send(notification.toPrimitives());
 
     if (result.success) {
       notification.sent();
-    } else {
-      notification.fail(result.failureReason ?? 'Unknown delivery failure');
+      await this.writeRepository.save(notification);
+      await this.publishEvents(notification);
+      this.logger.log(
+        `Notification ${notification.id.value} delivery finished with status ${notification.status.value}`,
+      );
+      return;
     }
 
-    await this.writeRepository.save(notification);
-    await this.publishEvents(notification);
-    this.logger.log(
-      `Notification ${notification.id.value} delivery finished with status ${notification.status.value}`,
-    );
+    // D4 — only the final BullMQ attempt is terminal. Every failed attempt
+    // throws so BullMQ can retry (or record it in its failed set); the
+    // final one additionally persists FAILED first.
+    const failureReason = result.failureReason ?? 'Unknown delivery failure';
+
+    if (command.isFinalAttempt.value) {
+      notification.fail(failureReason);
+      await this.writeRepository.save(notification);
+      await this.publishEvents(notification);
+      this.logger.log(
+        `Notification ${notification.id.value} delivery finished with status ${notification.status.value}`,
+      );
+    } else {
+      this.logger.warn(
+        `Delivery attempt failed for notification ${notification.id.value}, will retry: ${failureReason}`,
+      );
+    }
+
+    throw new NotificationDeliveryFailedException(failureReason);
   }
 }
