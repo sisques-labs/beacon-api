@@ -13,6 +13,11 @@ of this repo, and the first context your new service adds defines the pattern
 every subsequent one follows (see the `architecture` skill in
 `.claude/skills/architecture/SKILL.md`).
 
+This is the org's pilot for trunk-based development: `main` is the only
+long-lived branch. Every merge to `main` triggers `trunk-ci-cd.yml` (build +
+`dev`/`pre` deploy); cutting a `prod` release is a separate, manual step via
+`release.yml`. See `sisques-labs/workflows`' README for the full model.
+
 ## Using this template for a new service
 
 1. Create the new repo from this template (GitHub "Use this template", or
