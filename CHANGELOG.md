@@ -1,6 +1,16 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## [0.1.0] - 2026-09-16
+
+### Bug Fixes
+- **release:** Add missing security-events: write permission (#25) (1d49ee7)
+
+### Documentation
+- Note this repo as the org's trunk-based CI/CD pilot (ac4e430)
+
+### Features
+- **release:** Pilot trunk-based CI/CD pipeline (#22) (655911b)
 ## [0.0.1] - 2026-09-14
 
 ### Bug Fixes
