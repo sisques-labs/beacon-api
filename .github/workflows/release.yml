@@ -3,28 +3,25 @@ name: Release
 # TODO(rename-service): update image_name / ghcr_image_name below once this
 # template becomes a real service (see scripts/rename-service.sh).
 #
+# TODO(trunk-based-ci-cd): pin this to @main once
+# sisques-labs/workflows#74 merges — currently pinned to the fix branch
+# because promote mode's zero-input auto-computation doesn't exist on
+# workflows@main yet.
+#
 # Trunk-based model: this never rebuilds from source. It promotes the exact
 # image digest that already passed dev/pre (see trunk-ci-cd.yml's
 # image_digest job output) to a versioned :X.Y.Z + :latest release — the
 # bytes shipped to prod are byte-for-byte what was validated in pre.
 # There is only one channel (stable): no develop/staging means no
-# alpha/beta/rc anymore.
+# alpha/beta/rc anymore. Version and source digest are both computed
+# automatically — this is a one-click release with no required inputs.
 
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: Version bump type
-        required: true
-        default: patch
-        type: choice
-        options:
-          - patch
-          - minor
-          - major
       source_digest:
-        description: "Fully qualified digest to promote to prod (e.g. sisqueslabs/beacon-api@sha256:...) — copy this from the trunk-ci-cd.yml run's image_digest output for the commit you want to release"
-        required: true
+        description: "Optional: exact digest to promote (e.g. sisqueslabs/beacon-api@sha256:...) — copy this from a trunk-ci-cd.yml run's image_digest output. Leave empty to auto-promote the latest validated build on main (:edge)."
+        required: false
         type: string
 
 permissions:
@@ -37,12 +34,11 @@ concurrency:
 
 jobs:
   release:
-    uses: sisques-labs/workflows/.github/workflows/docker-release.yml@main
+    uses: sisques-labs/workflows/.github/workflows/docker-release.yml@fix/promote-mode-auto-version-digest
     with:
       image_name: sisqueslabs/beacon-api
       ghcr_image_name: ghcr.io/sisques-labs/beacon-api
       push_ghcr: true
-      version: ${{ inputs.version }}
       release_type: stable
       bump_mode: promote
       source_digest: ${{ inputs.source_digest }}
