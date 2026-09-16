@@ -65,9 +65,10 @@ See the project's `.env.example` for the full list.
 
 ## Tags
 
-- `latest` — most recent stable release (`main` branch)
+- `latest` — most recent stable release, promoted to prod from `main` via `release.yml`
 - `x.y.z` — specific stable release
-- `x.y.z-alpha.n` / `-beta.n` / `-rc.n` — prereleases from `develop`/`staging`
+- `sha-<shortsha>` — continuous build for a single commit on `main`, published by `trunk-ci-cd.yml` before promotion
+- `edge` — most recent continuous build on `main` (not yet promoted to a stable release)
 
 ## Source
 
