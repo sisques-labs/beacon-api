@@ -3,10 +3,6 @@ name: Release
 # TODO(rename-service): update image_name / ghcr_image_name below once this
 # template becomes a real service (see scripts/rename-service.sh).
 #
-# TODO(trunk-based-ci-cd): pin this to @main once
-# sisques-labs/workflows#72 and #73 merge — currently pinned to the pilot
-# branch because bump_mode=promote doesn't exist on workflows@main yet.
-#
 # Trunk-based model: this never rebuilds from source. It promotes the exact
 # image digest that already passed dev/pre (see trunk-ci-cd.yml's
 # image_digest job output) to a versioned :X.Y.Z + :latest release — the
@@ -41,7 +37,7 @@ concurrency:
 
 jobs:
   release:
-    uses: sisques-labs/workflows/.github/workflows/docker-release.yml@feat/trunk-based-ci-cd-01-pipeline
+    uses: sisques-labs/workflows/.github/workflows/docker-release.yml@main
     with:
       image_name: sisqueslabs/beacon-api
       ghcr_image_name: ghcr.io/sisques-labs/beacon-api

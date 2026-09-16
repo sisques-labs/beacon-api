@@ -2,10 +2,6 @@ name: Trunk CI/CD
 
 # TODO(rename-service): update image_name / ghcr_image_name below once this
 # template becomes a real service (see scripts/rename-service.sh).
-#
-# TODO(trunk-based-ci-cd): pin this to @main once
-# sisques-labs/workflows#72 and #73 merge — currently pinned to the pilot
-# branch because trunk-ci-cd.yml doesn't exist on workflows@main yet.
 
 on:
   push:
@@ -17,7 +13,7 @@ permissions:
 
 jobs:
   pipeline:
-    uses: sisques-labs/workflows/.github/workflows/trunk-ci-cd.yml@feat/trunk-based-ci-cd-01-pipeline
+    uses: sisques-labs/workflows/.github/workflows/trunk-ci-cd.yml@main
     with:
       image_name: sisqueslabs/beacon-api
       ghcr_image_name: ghcr.io/sisques-labs/beacon-api
