@@ -22,6 +22,15 @@ on:
 permissions:
   contents: write
   packages: write
+  # docker-release.yml declares security-events: write unconditionally at
+  # its own top level (needed only when scan_image=true), and GitHub
+  # validates that every caller grants everything a called reusable
+  # workflow's top-level permissions declare — statically, regardless of
+  # whether the permission is actually exercised at runtime. Omitting this
+  # fails the run before any job starts ("requesting security-events:
+  # write, but is only allowed security-events: none"), even though this
+  # workflow never sets scan_image.
+  security-events: write
 
 concurrency:
   group: release-${{ github.ref }}
@@ -48,3 +57,4 @@ jobs:
     permissions:
       contents: write
       packages: write
+      security-events: write
