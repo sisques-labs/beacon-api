@@ -46,7 +46,7 @@ every subsequent one follows (see the `architecture` skill in
 | MCP (Model Context Protocol) | `@sisques-labs/nestjs-kit/mcp` (wired in `src/core/core.module.ts`) | `POST /api/mcp`, per-request server, tool auto-discovery |
 | REST + GraphQL | `src/main.ts`, `src/core/core.module.ts` | Swagger at `/docs`, Apollo GraphQL at `/graphql` (drop whichever transport you don't need) |
 | Database | `src/database/`, TypeORM | Postgres only; migrations in `src/database/migrations/` |
-| CI/CD | `.github/workflows/` | `ci.yml` (lint+test+build+e2e+integration), `docker.yml` (PR smoke build), `release.yml` / `release-train.yml` (via `sisques-labs/workflows`) |
+| CI/CD | `.github/workflows/` | `ci.yml` (lint+test+build+e2e+integration), `docker.yml` (PR smoke build), `trunk-ci-cd.yml` (continuous build + dev/pre deploy on push to `main`), `release.yml` (manual promote to prod) — all via `sisques-labs/workflows` |
 | Dev workflow | `AGENTS.md`, `.claude/`, `openspec/` | Architecture skill, OpenSpec propose/apply/archive skills, project conventions in `openspec/config.yaml` |
 
 ## Deliberately not included
