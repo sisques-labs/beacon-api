@@ -99,7 +99,7 @@ importers:
         specifier: 1.11.0
         version: 1.11.0(b81ed810a6fcd4276c9a1cc9e698d765)
       axios:
-        specifier: ^1.20.0
+        specifier: 1.20.0
         version: 1.20.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
       bullmq:
         specifier: 6.3.4
