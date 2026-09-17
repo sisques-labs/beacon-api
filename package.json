@@ -77,7 +77,7 @@
     "@opentelemetry/sdk-node": "0.221.0",
     "@opentelemetry/sdk-trace-base": "2.10.0",
     "@opentelemetry/semantic-conventions": "1.43.0",
-    "@opentelemetry/winston-transport": "0.31.0",
+    "@opentelemetry/winston-transport": "0.32.0",
     "@sisques-labs/nestjs-kit": "1.11.0",
     "axios": "^1.20.0",
     "bullmq": "6.3.4",
