@@ -10,6 +10,11 @@ on:
 permissions:
   contents: read
   packages: write
+  # Only exercised when scan_image: true below, but GitHub validates every
+  # caller's granted permissions against the called reusable workflow's
+  # top-level declaration statically — required unconditionally, same trap
+  # documented for docker-release.yml after it broke release.yml for real.
+  security-events: write
 
 jobs:
   pipeline:
@@ -22,9 +27,11 @@ jobs:
       run_lint: true
       run_test: true
       platforms: linux/amd64,linux/arm64
+      scan_image: true
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     permissions:
       contents: read
       packages: write
+      security-events: write
