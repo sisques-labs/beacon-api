@@ -12,6 +12,7 @@ import { DeliverNotificationCommandHandler } from '@contexts/notifications/appli
 import { DeliverNotificationOnCreatedHandler } from '@contexts/notifications/application/events/deliver-notification-on-created.handler';
 import { NOTIFICATION_DELIVERY_QUEUE_PORT } from '@contexts/notifications/application/ports/notification-delivery-queue.port';
 import { NOTIFICATION_SENDER_PORT } from '@contexts/notifications/application/ports/notification-sender.port';
+import { NotificationFindByCriteriaHandler } from '@contexts/notifications/application/queries/notification-find-by-criteria/notification-find-by-criteria.handler';
 import { NotificationFindByIdHandler } from '@contexts/notifications/application/queries/notification-find-by-id/notification-find-by-id.handler';
 import { AssertNotificationViewModelExistsService } from '@contexts/notifications/application/services/read/assert-notification-view-model-exists/assert-notification-view-model-exists.service';
 import { AssertNotificationAggregateExistsService } from '@contexts/notifications/application/services/write/assert-notification-aggregate-exists.service';
@@ -39,7 +40,10 @@ const COMMAND_HANDLERS = [
   DeliverNotificationCommandHandler,
 ];
 const EVENT_HANDLERS = [DeliverNotificationOnCreatedHandler];
-const QUERY_HANDLERS = [NotificationFindByIdHandler];
+const QUERY_HANDLERS = [
+  NotificationFindByIdHandler,
+  NotificationFindByCriteriaHandler,
+];
 const APPLICATION_SERVICES = [
   AssertNotificationViewModelExistsService,
   AssertNotificationAggregateExistsService,
