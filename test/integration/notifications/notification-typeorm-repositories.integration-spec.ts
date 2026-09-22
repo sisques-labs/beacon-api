@@ -1,15 +1,18 @@
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { Criteria, FilterOperator } from '@sisques-labs/nestjs-kit';
 import { randomUUID } from 'crypto';
 import { Repository } from 'typeorm';
 
 import { NotificationBuilder } from '@contexts/notifications/domain/builders/notification.builder';
 import { NotificationDedupeKeyAlreadyExistsException } from '@contexts/notifications/domain/exceptions/notification-dedupe-key-already-exists.exception';
-import { NOTIFICATION_READ_REPOSITORY } from '@contexts/notifications/domain/repositories/read/notification-read.repository';
+import {
+  INotificationReadRepository,
+  NOTIFICATION_READ_REPOSITORY,
+} from '@contexts/notifications/domain/repositories/read/notification-read.repository';
 import {
   INotificationWriteRepository,
   NOTIFICATION_WRITE_REPOSITORY,
 } from '@contexts/notifications/domain/repositories/write/notification-write.repository';
-import { NotificationViewModel } from '@contexts/notifications/domain/view-models/notification.view-model';
 import { NotificationEntity } from '@contexts/notifications/infrastructure/persistence/typeorm/entities/notification.entity';
 import { NotificationsModule } from '@contexts/notifications/notifications.module';
 
@@ -41,9 +44,7 @@ function buildAggregate(overrides: {
 describe('Notification TypeORM repositories (integration)', () => {
   let ctx: IntegrationContext;
   let writeRepository: INotificationWriteRepository;
-  let readRepository: {
-    findById(id: string): Promise<NotificationViewModel | null>;
-  };
+  let readRepository: INotificationReadRepository;
   let ormRepository: Repository<NotificationEntity>;
 
   beforeAll(async () => {
@@ -150,5 +151,85 @@ describe('Notification TypeORM repositories (integration)', () => {
     const found = await writeRepository.findById(aggregate.id.value);
 
     expect(found?.deliveryMode.value).toBe('DELIVER');
+  });
+
+  describe('findByCriteria', () => {
+    it('filters by deliveryMode eq RECORD_ONLY, returning only those rows', async () => {
+      const deliver = buildAggregate({ deliveryMode: 'DELIVER' });
+      const recordOnly = buildAggregate({ deliveryMode: 'RECORD_ONLY' });
+      recordOnly.skip();
+      await writeRepository.save(deliver);
+      await writeRepository.save(recordOnly);
+
+      const result = await readRepository.findByCriteria(
+        new Criteria([
+          {
+            field: 'deliveryMode',
+            operator: FilterOperator.EQUALS,
+            value: 'RECORD_ONLY',
+          },
+        ]),
+      );
+
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0].id).toBe(recordOnly.id.value);
+      expect(result.items[0].deliveryMode).toBe('RECORD_ONLY');
+    });
+
+    it('filters by status eq SKIPPED, returning only those rows', async () => {
+      const pending = buildAggregate({});
+      const skipped = buildAggregate({ deliveryMode: 'RECORD_ONLY' });
+      skipped.skip();
+      await writeRepository.save(pending);
+      await writeRepository.save(skipped);
+
+      const result = await readRepository.findByCriteria(
+        new Criteria([
+          {
+            field: 'status',
+            operator: FilterOperator.EQUALS,
+            value: 'SKIPPED',
+          },
+        ]),
+      );
+
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0].id).toBe(skipped.id.value);
+      expect(result.items[0].status).toBe('SKIPPED');
+    });
+
+    it('filters with an IN operator across both deliveryMode values, returning both', async () => {
+      const deliver = buildAggregate({ deliveryMode: 'DELIVER' });
+      const recordOnly = buildAggregate({ deliveryMode: 'RECORD_ONLY' });
+      await writeRepository.save(deliver);
+      await writeRepository.save(recordOnly);
+
+      const result = await readRepository.findByCriteria(
+        new Criteria([
+          {
+            field: 'deliveryMode',
+            operator: FilterOperator.IN,
+            value: ['DELIVER', 'RECORD_ONLY'],
+          },
+        ]),
+      );
+
+      const ids = result.items.map((item) => item.id).sort();
+      expect(ids).toEqual([deliver.id.value, recordOnly.id.value].sort());
+    });
+
+    it('computes total and totalPages correctly across pages', async () => {
+      for (let i = 0; i < 5; i += 1) {
+        await writeRepository.save(buildAggregate({}));
+      }
+
+      const result = await readRepository.findByCriteria(
+        new Criteria([], [], { page: 1, perPage: 2 }),
+      );
+
+      expect(result.total).toBe(5);
+      expect(result.items).toHaveLength(2);
+      expect(result.totalPages).toBe(3);
+    });
   });
 });
