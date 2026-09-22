@@ -1,5 +1,6 @@
 import { CreateNotificationCommand } from '@contexts/notifications/application/commands/create-notification/create-notification.command';
 import { NotificationChannelEnum } from '@contexts/notifications/domain/enums/notification-channel.enum';
+import { NotificationDeliveryModeEnum } from '@contexts/notifications/domain/enums/notification-delivery-mode.enum';
 
 const VALID_INPUT = {
   tenantId: '11111111-1111-4111-8111-111111111111',
@@ -27,6 +28,35 @@ describe('CreateNotificationCommand', () => {
   it('throws when a required field is invalid', () => {
     expect(
       () => new CreateNotificationCommand({ ...VALID_INPUT, tenantId: '' }),
+    ).toThrow();
+  });
+
+  it('defaults deliveryMode to DELIVER when absent from input', () => {
+    const command = new CreateNotificationCommand(VALID_INPUT);
+
+    expect(command.deliveryMode.value).toBe(
+      NotificationDeliveryModeEnum.DELIVER,
+    );
+  });
+
+  it('preserves an explicit RECORD_ONLY deliveryMode', () => {
+    const command = new CreateNotificationCommand({
+      ...VALID_INPUT,
+      deliveryMode: NotificationDeliveryModeEnum.RECORD_ONLY,
+    });
+
+    expect(command.deliveryMode.value).toBe(
+      NotificationDeliveryModeEnum.RECORD_ONLY,
+    );
+  });
+
+  it('throws when deliveryMode is an invalid value', () => {
+    expect(
+      () =>
+        new CreateNotificationCommand({
+          ...VALID_INPUT,
+          deliveryMode: 'MAYBE' as NotificationDeliveryModeEnum,
+        }),
     ).toThrow();
   });
 });

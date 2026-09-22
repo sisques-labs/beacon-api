@@ -7,6 +7,7 @@ import { CreateNotificationCommand } from '@contexts/notifications/application/c
 import { FindNotificationByDedupeKeyService } from '@contexts/notifications/application/services/write/find-notification-by-dedupe-key/find-notification-by-dedupe-key.service';
 import { NotificationAggregate } from '@contexts/notifications/domain/aggregates/notification.aggregate';
 import { NotificationBuilder } from '@contexts/notifications/domain/builders/notification.builder';
+import { NotificationDeliveryModeEnum } from '@contexts/notifications/domain/enums/notification-delivery-mode.enum';
 import { NotificationDedupeKeyAlreadyExistsException } from '@contexts/notifications/domain/exceptions/notification-dedupe-key-already-exists.exception';
 import {
   INotificationWriteRepository,
@@ -52,11 +53,18 @@ export class CreateNotificationCommandHandler
       .withBody(command.body.value)
       .withSourceService(command.sourceService.value)
       .withDedupeKey(command.dedupeKey.value)
+      .withDeliveryMode(command.deliveryMode.value)
       .withCreatedAt(now)
       .withUpdatedAt(now)
       .build();
 
     aggregate.create();
+
+    if (
+      command.deliveryMode.value === NotificationDeliveryModeEnum.RECORD_ONLY
+    ) {
+      aggregate.skip();
+    }
 
     try {
       await this.writeRepository.save(aggregate);

@@ -5,6 +5,7 @@ import { CreateNotificationCommand } from '@contexts/notifications/application/c
 import { CreateNotificationCommandHandler } from '@contexts/notifications/application/commands/create-notification/create-notification.handler';
 import { FindNotificationByDedupeKeyService } from '@contexts/notifications/application/services/write/find-notification-by-dedupe-key/find-notification-by-dedupe-key.service';
 import { NotificationChannelEnum } from '@contexts/notifications/domain/enums/notification-channel.enum';
+import { NotificationDeliveryModeEnum } from '@contexts/notifications/domain/enums/notification-delivery-mode.enum';
 import { NotificationDedupeKeyAlreadyExistsException } from '@contexts/notifications/domain/exceptions/notification-dedupe-key-already-exists.exception';
 import { INotificationWriteRepository } from '@contexts/notifications/domain/repositories/write/notification-write.repository';
 
@@ -106,5 +107,46 @@ describe('CreateNotificationCommandHandler', () => {
     await expect(
       handler.execute(new CreateNotificationCommand(VALID_INPUT)),
     ).rejects.toBe(unexpected);
+  });
+
+  describe('deliveryMode', () => {
+    it('saves the aggregate as SKIPPED, with a single save call, when deliveryMode is RECORD_ONLY', async () => {
+      findNotificationByDedupeKeyService.execute.mockResolvedValue(null);
+      writeRepository.save.mockImplementation((aggregate) =>
+        Promise.resolve(aggregate),
+      );
+
+      const result = await handler.execute(
+        new CreateNotificationCommand({
+          ...VALID_INPUT,
+          deliveryMode: NotificationDeliveryModeEnum.RECORD_ONLY,
+        }),
+      );
+
+      expect(writeRepository.save).toHaveBeenCalledTimes(1);
+      const savedAggregate = writeRepository.save.mock.calls[0][0];
+      expect(savedAggregate.status.value).toBe('SKIPPED');
+      expect(savedAggregate.deliveryMode.value).toBe('RECORD_ONLY');
+      expect(eventBus.publishAll).toHaveBeenCalledTimes(1);
+      expect(result.id).toBe(savedAggregate.id.value);
+    });
+
+    it('saves the aggregate as PENDING when deliveryMode is DELIVER (regression)', async () => {
+      findNotificationByDedupeKeyService.execute.mockResolvedValue(null);
+      writeRepository.save.mockImplementation((aggregate) =>
+        Promise.resolve(aggregate),
+      );
+
+      await handler.execute(
+        new CreateNotificationCommand({
+          ...VALID_INPUT,
+          deliveryMode: NotificationDeliveryModeEnum.DELIVER,
+        }),
+      );
+
+      const savedAggregate = writeRepository.save.mock.calls[0][0];
+      expect(savedAggregate.status.value).toBe('PENDING');
+      expect(savedAggregate.deliveryMode.value).toBe('DELIVER');
+    });
   });
 });

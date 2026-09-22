@@ -1,8 +1,10 @@
 import { UuidValueObject } from '@sisques-labs/nestjs-kit';
 import { NotificationChannelEnum } from '@contexts/notifications/domain/enums/notification-channel.enum';
+import { NotificationDeliveryModeEnum } from '@contexts/notifications/domain/enums/notification-delivery-mode.enum';
 import { NotificationBodyValueObject } from '@contexts/notifications/domain/value-objects/notification-body/notification-body.value-object';
 import { NotificationChannelValueObject } from '@contexts/notifications/domain/value-objects/notification-channel/notification-channel.value-object';
 import { NotificationDedupeKeyValueObject } from '@contexts/notifications/domain/value-objects/notification-dedupe-key/notification-dedupe-key.value-object';
+import { NotificationDeliveryModeValueObject } from '@contexts/notifications/domain/value-objects/notification-delivery-mode/notification-delivery-mode.value-object';
 import { NotificationSourceServiceValueObject } from '@contexts/notifications/domain/value-objects/notification-source-service/notification-source-service.value-object';
 import { NotificationTitleValueObject } from '@contexts/notifications/domain/value-objects/notification-title/notification-title.value-object';
 import { INotificationPrimitives } from '@contexts/notifications/domain/primitives/notification.primitives';
@@ -16,7 +18,7 @@ export type CreateNotificationCommandInput = Pick<
   | 'body'
   | 'sourceService'
   | 'dedupeKey'
->;
+> & { deliveryMode?: string };
 
 export class CreateNotificationCommand {
   public readonly tenantId: UuidValueObject;
@@ -26,6 +28,7 @@ export class CreateNotificationCommand {
   public readonly body: NotificationBodyValueObject;
   public readonly sourceService: NotificationSourceServiceValueObject;
   public readonly dedupeKey: NotificationDedupeKeyValueObject;
+  public readonly deliveryMode: NotificationDeliveryModeValueObject;
 
   constructor(input: CreateNotificationCommandInput) {
     this.tenantId = new UuidValueObject(input.tenantId);
@@ -39,5 +42,9 @@ export class CreateNotificationCommand {
       input.sourceService,
     );
     this.dedupeKey = new NotificationDedupeKeyValueObject(input.dedupeKey);
+    this.deliveryMode = new NotificationDeliveryModeValueObject(
+      (input.deliveryMode ??
+        NotificationDeliveryModeEnum.DELIVER) as NotificationDeliveryModeEnum,
+    );
   }
 }
