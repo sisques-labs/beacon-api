@@ -63,4 +63,51 @@ describe('NotificationCreateRequestDto (GraphQL)', () => {
 
     expect(errors.map((error) => error.property)).toContain('channel');
   });
+
+  it('passes validation when deliveryMode is absent', async () => {
+    const dto = plainToInstance(NotificationCreateRequestDto, VALID_PAYLOAD);
+
+    const errors = await validate(dto);
+
+    expect(errors).toHaveLength(0);
+  });
+
+  it('passes validation for a valid RECORD_ONLY deliveryMode', async () => {
+    const dto = plainToInstance(NotificationCreateRequestDto, {
+      ...VALID_PAYLOAD,
+      deliveryMode: 'RECORD_ONLY',
+    });
+
+    const errors = await validate(dto);
+
+    expect(errors).toHaveLength(0);
+  });
+
+  it('fails validation for an invalid deliveryMode value', async () => {
+    const dto = plainToInstance(NotificationCreateRequestDto, {
+      ...VALID_PAYLOAD,
+      deliveryMode: 'MAYBE',
+    });
+
+    const errors = await validate(dto);
+
+    expect(errors.map((error) => error.property)).toContain('deliveryMode');
+  });
+
+  it('fails validation for a URL-shaped deliveryMode value (SSRF constraint D3) — never coerced or silently accepted', async () => {
+    const dto = plainToInstance(NotificationCreateRequestDto, {
+      ...VALID_PAYLOAD,
+      deliveryMode: 'https://evil.example.com/webhook',
+    });
+
+    const errors = await validate(dto);
+
+    expect(errors.map((error) => error.property)).toContain('deliveryMode');
+  });
+
+  it('does not default deliveryMode on the DTO itself (D-A: the single default lives in CreateNotificationCommand)', () => {
+    const dto = plainToInstance(NotificationCreateRequestDto, VALID_PAYLOAD);
+
+    expect(dto.deliveryMode).toBeUndefined();
+  });
 });

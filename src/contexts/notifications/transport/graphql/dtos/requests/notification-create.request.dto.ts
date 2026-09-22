@@ -1,7 +1,15 @@
 import { Field, InputType, ID } from '@nestjs/graphql';
-import { IsEnum, IsIn, IsNotEmpty, IsString, IsUUID } from 'class-validator';
+import {
+  IsEnum,
+  IsIn,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 
 import { NotificationChannelEnum } from '@contexts/notifications/domain/enums/notification-channel.enum';
+import { NotificationDeliveryModeEnum } from '@contexts/notifications/domain/enums/notification-delivery-mode.enum';
 
 @InputType()
 export class NotificationCreateRequestDto {
@@ -41,4 +49,11 @@ export class NotificationCreateRequestDto {
   @IsString()
   @IsNotEmpty()
   dedupeKey!: string;
+
+  // D-A: no GraphQL `defaultValue` here — the single "absent ⇒ DELIVER"
+  // default lives in CreateNotificationCommand's constructor only.
+  @Field(() => NotificationDeliveryModeEnum, { nullable: true })
+  @IsOptional()
+  @IsEnum(NotificationDeliveryModeEnum)
+  deliveryMode?: NotificationDeliveryModeEnum;
 }
