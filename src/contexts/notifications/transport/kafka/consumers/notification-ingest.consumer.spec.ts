@@ -107,5 +107,41 @@ describe('NotificationIngestConsumer', () => {
 
       expect(commandBus.execute).toHaveBeenCalledTimes(1);
     });
+
+    it('dispatches CreateNotificationCommand carrying a valid deliveryMode', async () => {
+      await consumer.handleMessage(
+        buildInboundMessage(
+          JSON.stringify({ ...VALID_PAYLOAD, deliveryMode: 'RECORD_ONLY' }),
+        ),
+      );
+
+      expect(commandBus.execute).toHaveBeenCalledTimes(1);
+      const dispatched = commandBus.execute.mock
+        .calls[0][0] as CreateNotificationCommand;
+      expect(dispatched.deliveryMode.value).toBe('RECORD_ONLY');
+    });
+
+    it('defaults to DELIVER when deliveryMode is absent', async () => {
+      await consumer.handleMessage(
+        buildInboundMessage(JSON.stringify(VALID_PAYLOAD)),
+      );
+
+      const dispatched = commandBus.execute.mock
+        .calls[0][0] as CreateNotificationCommand;
+      expect(dispatched.deliveryMode.value).toBe('DELIVER');
+    });
+
+    it('logs and skips without dispatching for an invalid deliveryMode (SSRF constraint D3 — URL-shaped value never accepted)', async () => {
+      await consumer.handleMessage(
+        buildInboundMessage(
+          JSON.stringify({
+            ...VALID_PAYLOAD,
+            deliveryMode: 'https://evil.example.com/webhook',
+          }),
+        ),
+      );
+
+      expect(commandBus.execute).not.toHaveBeenCalled();
+    });
   });
 });

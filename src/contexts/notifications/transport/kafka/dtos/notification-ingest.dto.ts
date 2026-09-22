@@ -7,6 +7,7 @@ import {
 } from 'class-validator';
 
 import { NotificationChannelEnum } from '@contexts/notifications/domain/enums/notification-channel.enum';
+import { NotificationDeliveryModeEnum } from '@contexts/notifications/domain/enums/notification-delivery-mode.enum';
 
 /**
  * Shape of an inbound notification-request Kafka event.
@@ -46,4 +47,8 @@ export class NotificationIngestDto {
   @IsOptional()
   @IsString()
   deliverableAddress?: string;
+
+  @IsOptional()
+  @IsEnum(NotificationDeliveryModeEnum)
+  deliveryMode?: NotificationDeliveryModeEnum;
 }
