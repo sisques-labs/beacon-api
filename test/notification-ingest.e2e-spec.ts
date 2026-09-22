@@ -111,6 +111,34 @@ describe('Notification Kafka ingestion (e2e)', () => {
     expect(count).toBe(0);
   });
 
+  it('persists a RECORD_ONLY event with deliveryMode=RECORD_ONLY and terminal status SKIPPED', async () => {
+    const event = buildValidEvent({ deliveryMode: 'RECORD_ONLY' });
+
+    await consumer.handleMessage(buildPayload(event));
+
+    const persisted = await writeRepository.findByDedupeKey(
+      event.tenantId,
+      event.dedupeKey,
+    );
+    expect(persisted).not.toBeNull();
+    expect(persisted?.deliveryMode.value).toBe('RECORD_ONLY');
+    expect(persisted?.status.value).toBe('SKIPPED');
+  });
+
+  it('skips an event with an invalid deliveryMode (SSRF constraint D3) without creating any notification row', async () => {
+    const event = buildValidEvent({
+      deliveryMode: 'https://evil.example.com/webhook',
+    });
+
+    await consumer.handleMessage(buildPayload(event));
+
+    const persisted = await writeRepository.findByDedupeKey(
+      event.tenantId,
+      event.dedupeKey,
+    );
+    expect(persisted).toBeNull();
+  });
+
   it('persists exactly one row per distinct dedupeKey, proving idempotency operates on real state', async () => {
     const first = buildValidEvent();
     const second = buildValidEvent();

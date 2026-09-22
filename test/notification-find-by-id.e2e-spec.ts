@@ -25,6 +25,23 @@ function buildAggregate() {
     .build();
 }
 
+function buildSkippedAggregate() {
+  return new NotificationBuilder()
+    .withId(randomUUID())
+    .withTenantId(randomUUID())
+    .withRecipientUserId(randomUUID())
+    .withChannel('DISCORD')
+    .withStatus('SKIPPED')
+    .withDeliveryMode('RECORD_ONLY')
+    .withTitle('Title')
+    .withBody('Body')
+    .withSourceService('gardenia')
+    .withDedupeKey(randomUUID())
+    .withCreatedAt(new Date())
+    .withUpdatedAt(new Date())
+    .build();
+}
+
 describe('Notification get-by-id (e2e)', () => {
   let ctx: E2EContext;
   let writeRepository: INotificationWriteRepository;
@@ -62,6 +79,19 @@ describe('Notification get-by-id (e2e)', () => {
 
       expect(res.status).toBe(404);
     });
+
+    it('returns a SKIPPED notification with its deliveryMode, no error', async () => {
+      const aggregate = buildSkippedAggregate();
+      await writeRepository.save(aggregate);
+
+      const res = await ctx
+        .http()
+        .get(`/api/v1/notifications/${aggregate.id.value}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.status).toBe('SKIPPED');
+      expect(res.body.deliveryMode).toBe('RECORD_ONLY');
+    });
   });
 
   describe('GraphQL — notificationFindById', () => {
@@ -71,6 +101,7 @@ describe('Notification get-by-id (e2e)', () => {
           id
           status
           dedupeKey
+          deliveryMode
         }
       }
     `;
@@ -89,6 +120,25 @@ describe('Notification get-by-id (e2e)', () => {
         id: aggregate.id.value,
         status: 'PENDING',
         dedupeKey: aggregate.dedupeKey.value,
+        deliveryMode: 'DELIVER',
+      });
+    });
+
+    it('returns a SKIPPED notification with its deliveryMode, no error', async () => {
+      const aggregate = buildSkippedAggregate();
+      await writeRepository.save(aggregate);
+
+      const res = await gql(ctx.app, query, {
+        input: { id: aggregate.id.value },
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.body.errors).toBeUndefined();
+      expect(res.body.data.notificationFindById).toEqual({
+        id: aggregate.id.value,
+        status: 'SKIPPED',
+        dedupeKey: aggregate.dedupeKey.value,
+        deliveryMode: 'RECORD_ONLY',
       });
     });
 

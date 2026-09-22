@@ -173,6 +173,24 @@ describe('Notification Discord delivery (e2e)', () => {
     expect(postSpy).toHaveBeenCalledTimes(1);
   });
 
+  it('RECORD_ONLY never calls the Discord webhook and reaches terminal SKIPPED with no job enqueued', async () => {
+    postSpy.mockReturnValue(buildSuccessResponse());
+    const event = buildValidEvent({ deliveryMode: 'RECORD_ONLY' });
+
+    await consumer.handleMessage(buildPayload(event));
+    const skipped = await waitForTerminalStatus(
+      writeRepository,
+      event.tenantId,
+      event.dedupeKey,
+    );
+
+    expect(skipped.status.value).toBe('SKIPPED');
+    expect(skipped.deliveryMode.value).toBe('RECORD_ONLY');
+    expect(postSpy).not.toHaveBeenCalled();
+    const job = await queue.getJob(skipped.id.value);
+    expect(job).toBeUndefined();
+  });
+
   it('retries a transient failure and still reaches SENT on a later attempt', async () => {
     postSpy
       .mockReturnValueOnce(throwError(() => buildAxiosError(500)))

@@ -134,6 +134,28 @@ describe('Notification creation (e2e)', () => {
         expect(await countRows()).toBe(0);
       },
     );
+
+    it('creates a RECORD_ONLY notification and returns 201 + id', async () => {
+      const payload = buildRestPayload({ deliveryMode: 'RECORD_ONLY' });
+
+      const res = await ctx.http().post('/api/v1/notifications').send(payload);
+
+      expect(res.status).toBe(201);
+      expect(res.body.id).toEqual(expect.any(String));
+      expect(await countRows()).toBe(1);
+    });
+
+    it('rejects an invalid deliveryMode (SSRF constraint D3) with a 4xx and creates nothing', async () => {
+      const payload = buildRestPayload({
+        deliveryMode: 'https://evil.example.com/webhook',
+      });
+
+      const res = await ctx.http().post('/api/v1/notifications').send(payload);
+
+      expect(res.status).toBeGreaterThanOrEqual(400);
+      expect(res.status).toBeLessThan(500);
+      expect(await countRows()).toBe(0);
+    });
   });
 
   describe('GraphQL — notificationCreate', () => {
@@ -182,6 +204,28 @@ describe('Notification creation (e2e)', () => {
         expect(await countRows()).toBe(0);
       },
     );
+
+    it('creates a RECORD_ONLY notification and returns success + id', async () => {
+      const payload = buildRestPayload({ deliveryMode: 'RECORD_ONLY' });
+
+      const res = await gql(ctx.app, CREATE_MUTATION, { input: payload });
+
+      expect(res.status).toBe(200);
+      expect(res.body.errors).toBeUndefined();
+      expect(res.body.data.notificationCreate.success).toBe(true);
+      expect(await countRows()).toBe(1);
+    });
+
+    it('rejects an invalid deliveryMode (SSRF constraint D3) with a GraphQL error and creates nothing', async () => {
+      const payload = buildRestPayload({
+        deliveryMode: 'https://evil.example.com/webhook',
+      });
+
+      const res = await gql(ctx.app, CREATE_MUTATION, { input: payload });
+
+      expect(res.body.errors).toBeDefined();
+      expect(await countRows()).toBe(0);
+    });
   });
 
   describe('Cross-transport dedupe (same tenantId + dedupeKey pair)', () => {
