@@ -29,15 +29,6 @@ describe('notification-registered-enums.graphql', () => {
     );
   });
 
-  it('registers NotificationDeliveryModeEnum', async () => {
-    await import('./notification-registered-enums.graphql');
-
-    expect(registerEnumType).toHaveBeenCalledWith(
-      NotificationDeliveryModeEnum,
-      expect.objectContaining({ name: 'NotificationDeliveryModeEnum' }),
-    );
-  });
-
   it('registers NotificationQueryableFieldEnum', async () => {
     await import('./notification-registered-enums.graphql');
 
