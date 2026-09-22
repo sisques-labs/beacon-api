@@ -6,6 +6,7 @@ import {
   INotificationSenderPort,
   NOTIFICATION_SENDER_PORT,
 } from '@contexts/notifications/application/ports/notification-sender.port';
+import { NotificationDeliveryModeEnum } from '@contexts/notifications/domain/enums/notification-delivery-mode.enum';
 import { NotificationStatusEnum } from '@contexts/notifications/domain/enums/notification-status.enum';
 import { NotificationDeliveryFailedException } from '@contexts/notifications/domain/exceptions/notification-delivery-failed.exception';
 import {
@@ -48,6 +49,22 @@ export class DeliverNotificationCommandHandler
     if (notification.status.value !== NotificationStatusEnum.PENDING) {
       this.logger.log(
         `Skipping delivery for notification ${notification.id.value}: already ${notification.status.value}`,
+      );
+      return;
+    }
+
+    // Defense in depth (D-D): a job enqueued before deploy, or manually
+    // re-queued, could still reach here for a RECORD_ONLY notification even
+    // though DeliverNotificationOnCreatedHandler already guards enqueue.
+    if (
+      notification.deliveryMode.value ===
+      NotificationDeliveryModeEnum.RECORD_ONLY
+    ) {
+      notification.skip();
+      await this.writeRepository.save(notification);
+      await this.publishEvents(notification);
+      this.logger.log(
+        `Notification ${notification.id.value} delivery finished with status ${notification.status.value}`,
       );
       return;
     }

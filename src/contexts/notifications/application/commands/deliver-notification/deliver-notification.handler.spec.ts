@@ -8,6 +8,7 @@ import { AssertNotificationAggregateExistsService } from '@contexts/notification
 import { NotificationAggregate } from '@contexts/notifications/domain/aggregates/notification.aggregate';
 import { NotificationBuilder } from '@contexts/notifications/domain/builders/notification.builder';
 import { NotificationChannelEnum } from '@contexts/notifications/domain/enums/notification-channel.enum';
+import { NotificationDeliveryModeEnum } from '@contexts/notifications/domain/enums/notification-delivery-mode.enum';
 import { NotificationStatusEnum } from '@contexts/notifications/domain/enums/notification-status.enum';
 import { NotificationDeliveryFailedException } from '@contexts/notifications/domain/exceptions/notification-delivery-failed.exception';
 import { NotificationNotFoundException } from '@contexts/notifications/domain/exceptions/notification-not-found.exception';
@@ -17,6 +18,7 @@ const NOTIFICATION_ID = '11111111-1111-4111-8111-111111111111';
 
 function buildAggregate(
   status: NotificationStatusEnum = NotificationStatusEnum.PENDING,
+  deliveryMode: NotificationDeliveryModeEnum = NotificationDeliveryModeEnum.DELIVER,
 ): NotificationAggregate {
   return new NotificationBuilder()
     .withId(NOTIFICATION_ID)
@@ -28,6 +30,7 @@ function buildAggregate(
     .withBody('Your plant was watered successfully.')
     .withSourceService('gardenia-api')
     .withDedupeKey('gardenia:plant:1:watered')
+    .withDeliveryMode(deliveryMode)
     .withSentAt(status === NotificationStatusEnum.SENT ? new Date() : null)
     .withCreatedAt(new Date('2026-01-01T00:00:00.000Z'))
     .withUpdatedAt(new Date('2026-01-01T00:00:00.000Z'))
@@ -201,6 +204,55 @@ describe('DeliverNotificationCommandHandler', () => {
         'Discord webhook responded with status 500',
       );
       expect(eventBus.publishAll).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('RECORD_ONLY defense in depth', () => {
+    it('never calls the sender, transitions to SKIPPED, and saves once for a PENDING RECORD_ONLY notification', async () => {
+      const aggregate = buildAggregate(
+        NotificationStatusEnum.PENDING,
+        NotificationDeliveryModeEnum.RECORD_ONLY,
+      );
+      assertNotificationAggregateExistsService.execute.mockResolvedValue(
+        aggregate,
+      );
+      writeRepository.save.mockImplementation((entity) =>
+        Promise.resolve(entity),
+      );
+
+      await handler.execute(
+        new DeliverNotificationCommand({
+          notificationId: NOTIFICATION_ID,
+          isFinalAttempt: false,
+        }),
+      );
+
+      expect(senderPort.send).not.toHaveBeenCalled();
+      expect(writeRepository.save).toHaveBeenCalledTimes(1);
+      const saved = writeRepository.save.mock.calls[0][0];
+      expect(saved.status.value).toBe('SKIPPED');
+      expect(eventBus.publishAll).toHaveBeenCalledTimes(1);
+    });
+
+    it('leaves the existing early return unaffected for an already-SKIPPED notification', async () => {
+      const aggregate = buildAggregate(
+        NotificationStatusEnum.SKIPPED,
+        NotificationDeliveryModeEnum.RECORD_ONLY,
+      );
+      assertNotificationAggregateExistsService.execute.mockResolvedValue(
+        aggregate,
+      );
+
+      await handler.execute(
+        new DeliverNotificationCommand({
+          notificationId: NOTIFICATION_ID,
+          isFinalAttempt: false,
+        }),
+      );
+
+      expect(senderPort.send).not.toHaveBeenCalled();
+      expect(writeRepository.save).not.toHaveBeenCalled();
+      expect(eventBus.publishAll).not.toHaveBeenCalled();
     });
   });
 });
