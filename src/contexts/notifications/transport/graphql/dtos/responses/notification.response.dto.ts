@@ -1,6 +1,7 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
 
 import { NotificationChannelEnum } from '@contexts/notifications/domain/enums/notification-channel.enum';
+import { NotificationDeliveryModeEnum } from '@contexts/notifications/domain/enums/notification-delivery-mode.enum';
 import { NotificationStatusEnum } from '@contexts/notifications/domain/enums/notification-status.enum';
 
 @ObjectType('NotificationResponseDto')
@@ -31,6 +32,9 @@ export class NotificationResponseDto {
 
   @Field()
   dedupeKey!: string;
+
+  @Field(() => NotificationDeliveryModeEnum)
+  deliveryMode!: NotificationDeliveryModeEnum;
 
   @Field(() => String, { nullable: true })
   failureReason!: string | null;

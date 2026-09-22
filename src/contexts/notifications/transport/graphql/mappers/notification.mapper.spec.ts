@@ -39,6 +39,7 @@ describe('NotificationGraphQLMapper', () => {
     expect(dto.body).toBe(viewModel.body);
     expect(dto.sourceService).toBe(viewModel.sourceService);
     expect(dto.dedupeKey).toBe(viewModel.dedupeKey);
+    expect(dto.deliveryMode).toBe(viewModel.deliveryMode);
     expect(dto.failureReason).toBeNull();
     expect(dto.createdAt).toBe(viewModel.createdAt);
     expect(dto.updatedAt).toBe(viewModel.updatedAt);

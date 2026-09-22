@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { NotificationChannelEnum } from '@contexts/notifications/domain/enums/notification-channel.enum';
+import { NotificationDeliveryModeEnum } from '@contexts/notifications/domain/enums/notification-delivery-mode.enum';
 import { NotificationStatusEnum } from '@contexts/notifications/domain/enums/notification-status.enum';
 import { NotificationViewModel } from '@contexts/notifications/domain/view-models/notification.view-model';
 import { NotificationResponseDto } from '@contexts/notifications/transport/graphql/dtos/responses/notification.response.dto';
@@ -21,6 +22,7 @@ export class NotificationGraphQLMapper {
     dto.body = viewModel.body;
     dto.sourceService = viewModel.sourceService;
     dto.dedupeKey = viewModel.dedupeKey;
+    dto.deliveryMode = viewModel.deliveryMode as NotificationDeliveryModeEnum;
     dto.failureReason = viewModel.failureReason;
     dto.sentAt = viewModel.sentAt;
     dto.readAt = viewModel.readAt;
