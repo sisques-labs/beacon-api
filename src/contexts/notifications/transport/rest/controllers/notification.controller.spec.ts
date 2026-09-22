@@ -4,6 +4,7 @@ import { Mocked, vi } from 'vitest';
 import { CreateNotificationCommand } from '@contexts/notifications/application/commands/create-notification/create-notification.command';
 import { NotificationFindByIdQuery } from '@contexts/notifications/application/queries/notification-find-by-id/notification-find-by-id.query';
 import { NotificationChannelEnum } from '@contexts/notifications/domain/enums/notification-channel.enum';
+import { NotificationDeliveryModeEnum } from '@contexts/notifications/domain/enums/notification-delivery-mode.enum';
 import { NotificationViewModel } from '@contexts/notifications/domain/view-models/notification.view-model';
 import { NotificationCreateRequestDto } from '@contexts/notifications/transport/rest/dtos/notification-create-request.dto';
 import { NotificationCreateResponseDto } from '@contexts/notifications/transport/rest/dtos/notification-create-response.dto';
@@ -118,6 +119,31 @@ describe('NotificationController', () => {
         dedupeKey: dto.dedupeKey,
       }),
     );
+  });
+
+  it('dispatches CreateNotificationCommand carrying a valid deliveryMode', async () => {
+    const dto = buildCreateRequestDto();
+    dto.deliveryMode = NotificationDeliveryModeEnum.RECORD_ONLY;
+    commandBus.execute.mockResolvedValue({
+      id: '11111111-1111-4111-8111-111111111111',
+    });
+
+    await controller.create(dto);
+
+    expect(commandBus.execute).toHaveBeenCalledTimes(1);
+    const dispatched = commandBus.execute.mock
+      .calls[0][0] as CreateNotificationCommand;
+    expect(dispatched.deliveryMode.value).toBe('RECORD_ONLY');
+  });
+
+  it('throws and never dispatches for an invalid deliveryMode (SSRF constraint D3 — URL-shaped value never accepted)', async () => {
+    const dto = buildCreateRequestDto();
+    dto.deliveryMode =
+      'https://evil.example.com/webhook' as NotificationDeliveryModeEnum;
+
+    await expect(controller.create(dto)).rejects.toThrow();
+
+    expect(commandBus.execute).not.toHaveBeenCalled();
   });
 
   it('maps the CommandBus result to the create response via the REST mapper', async () => {

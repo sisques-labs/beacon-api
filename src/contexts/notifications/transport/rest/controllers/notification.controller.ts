@@ -64,6 +64,7 @@ export class NotificationController {
         body: dto.body,
         sourceService: dto.sourceService,
         dedupeKey: dto.dedupeKey,
+        deliveryMode: dto.deliveryMode,
       }),
     );
     return this.notificationRestMapper.toResponseDtoFromResult(result);

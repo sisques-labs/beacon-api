@@ -8,6 +8,7 @@ import { Mocked, vi } from 'vitest';
 
 import { CreateNotificationCommand } from '@contexts/notifications/application/commands/create-notification/create-notification.command';
 import { NotificationChannelEnum } from '@contexts/notifications/domain/enums/notification-channel.enum';
+import { NotificationDeliveryModeEnum } from '@contexts/notifications/domain/enums/notification-delivery-mode.enum';
 import { NotificationCreateRequestDto } from '@contexts/notifications/transport/graphql/dtos/requests/notification-create.request.dto';
 import { NotificationMutationsResolver } from '@contexts/notifications/transport/graphql/resolvers/mutations/notification-mutations.resolver';
 
@@ -74,6 +75,34 @@ describe('NotificationMutationsResolver', () => {
         dedupeKey: dto.dedupeKey,
       }),
     );
+  });
+
+  it('dispatches CreateNotificationCommand carrying a valid deliveryMode', async () => {
+    const dto = buildCreateRequestDto();
+    dto.deliveryMode = NotificationDeliveryModeEnum.RECORD_ONLY;
+    commandBus.execute.mockResolvedValue({
+      id: '11111111-1111-4111-8111-111111111111',
+    });
+    mapper.toResponseDto.mockReturnValue(
+      new MutationResponseDto() as MutationResponseDto,
+    );
+
+    await resolver.notificationCreate(dto);
+
+    expect(commandBus.execute).toHaveBeenCalledTimes(1);
+    const dispatched = commandBus.execute.mock
+      .calls[0][0] as CreateNotificationCommand;
+    expect(dispatched.deliveryMode.value).toBe('RECORD_ONLY');
+  });
+
+  it('throws and never dispatches for an invalid deliveryMode (SSRF constraint D3 — URL-shaped value never accepted)', async () => {
+    const dto = buildCreateRequestDto();
+    dto.deliveryMode =
+      'https://evil.example.com/webhook' as NotificationDeliveryModeEnum;
+
+    await expect(resolver.notificationCreate(dto)).rejects.toThrow();
+
+    expect(commandBus.execute).not.toHaveBeenCalled();
   });
 
   it('maps the CommandBus result to a MutationResponseDto via the mapper', async () => {

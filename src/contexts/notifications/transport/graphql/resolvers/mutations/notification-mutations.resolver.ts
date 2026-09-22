@@ -44,6 +44,7 @@ export class NotificationMutationsResolver {
         body: input.body,
         sourceService: input.sourceService,
         dedupeKey: input.dedupeKey,
+        deliveryMode: input.deliveryMode,
       }),
     );
 
