@@ -1,68 +1,51 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-import { NotificationViewModel } from '@contexts/notifications/domain/view-models/notification.view-model';
-
 export class NotificationResponseDto {
   @ApiProperty()
-  id: string;
+  id!: string;
 
   @ApiProperty()
-  tenantId: string;
+  tenantId!: string;
 
   @ApiProperty()
-  recipientUserId: string;
+  recipientUserId!: string;
 
   @ApiProperty()
-  channel: string;
+  channel!: string;
 
   @ApiProperty()
-  status: string;
+  status!: string;
 
   @ApiProperty()
-  title: string;
+  title!: string;
 
   @ApiProperty()
-  body: string;
+  body!: string;
 
   @ApiProperty()
-  sourceService: string;
+  sourceService!: string;
 
   @ApiProperty()
-  dedupeKey: string;
+  dedupeKey!: string;
+
+  @ApiProperty()
+  deliveryMode!: string;
 
   @ApiProperty({ nullable: true, type: String })
-  failureReason: string | null;
+  failureReason!: string | null;
 
   @ApiProperty({ nullable: true, type: Date })
-  sentAt: Date | null;
+  sentAt!: Date | null;
 
   @ApiProperty({ nullable: true, type: Date })
-  readAt: Date | null;
+  readAt!: Date | null;
 
   @ApiProperty({ nullable: true, type: Date })
-  cancelledAt: Date | null;
+  cancelledAt!: Date | null;
 
   @ApiProperty()
-  createdAt: Date;
+  createdAt!: Date;
 
   @ApiProperty()
-  updatedAt: Date;
-
-  constructor(viewModel: NotificationViewModel) {
-    this.id = viewModel.id;
-    this.tenantId = viewModel.tenantId;
-    this.recipientUserId = viewModel.recipientUserId;
-    this.channel = viewModel.channel;
-    this.status = viewModel.status;
-    this.title = viewModel.title;
-    this.body = viewModel.body;
-    this.sourceService = viewModel.sourceService;
-    this.dedupeKey = viewModel.dedupeKey;
-    this.failureReason = viewModel.failureReason;
-    this.sentAt = viewModel.sentAt;
-    this.readAt = viewModel.readAt;
-    this.cancelledAt = viewModel.cancelledAt;
-    this.createdAt = viewModel.createdAt;
-    this.updatedAt = viewModel.updatedAt;
-  }
+  updatedAt!: Date;
 }

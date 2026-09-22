@@ -39,7 +39,7 @@ export class NotificationController {
       NotificationFindByIdQuery,
       NotificationViewModel
     >(new NotificationFindByIdQuery({ id }));
-    return new NotificationResponseDto(viewModel);
+    return this.notificationRestMapper.toResponseDtoFromViewModel(viewModel);
   }
 
   // D7: deliberately unauthenticated — no @UseGuards(JwtAuthGuard) here.

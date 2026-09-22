@@ -8,6 +8,7 @@ import { NotificationDeliveryModeEnum } from '@contexts/notifications/domain/enu
 import { NotificationViewModel } from '@contexts/notifications/domain/view-models/notification.view-model';
 import { NotificationCreateRequestDto } from '@contexts/notifications/transport/rest/dtos/notification-create-request.dto';
 import { NotificationCreateResponseDto } from '@contexts/notifications/transport/rest/dtos/notification-create-response.dto';
+import { NotificationResponseDto } from '@contexts/notifications/transport/rest/dtos/notification-response.dto';
 import { NotificationController } from '@contexts/notifications/transport/rest/controllers/notification.controller';
 import { NotificationRestMapper } from '@contexts/notifications/transport/rest/mappers/notification.mapper';
 
@@ -55,6 +56,7 @@ describe('NotificationController', () => {
     commandBus = { execute: vi.fn() } as unknown as Mocked<CommandBus>;
     notificationRestMapper = {
       toResponseDtoFromResult: vi.fn(),
+      toResponseDtoFromViewModel: vi.fn(),
     } as unknown as Mocked<NotificationRestMapper>;
     controller = new NotificationController(
       queryBus,
@@ -74,29 +76,20 @@ describe('NotificationController', () => {
     );
   });
 
-  it('returns a response DTO built from the view model', async () => {
+  it('maps the query result to a response DTO via the REST mapper (architecture rule 8 — never self-mapped)', async () => {
     const viewModel = buildViewModel();
     queryBus.execute.mockResolvedValue(viewModel);
+    const responseDto = new NotificationResponseDto();
+    notificationRestMapper.toResponseDtoFromViewModel.mockReturnValue(
+      responseDto,
+    );
 
     const result = await controller.findById(viewModel.id);
 
-    expect(result).toEqual({
-      id: viewModel.id,
-      tenantId: viewModel.tenantId,
-      recipientUserId: viewModel.recipientUserId,
-      channel: viewModel.channel,
-      status: viewModel.status,
-      title: viewModel.title,
-      body: viewModel.body,
-      sourceService: viewModel.sourceService,
-      dedupeKey: viewModel.dedupeKey,
-      failureReason: null,
-      sentAt: null,
-      readAt: null,
-      cancelledAt: null,
-      createdAt: viewModel.createdAt,
-      updatedAt: viewModel.updatedAt,
-    });
+    expect(
+      notificationRestMapper.toResponseDtoFromViewModel,
+    ).toHaveBeenCalledWith(viewModel);
+    expect(result).toBe(responseDto);
   });
 
   it('dispatches one CreateNotificationCommand built from the request DTO', async () => {
