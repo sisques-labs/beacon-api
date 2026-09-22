@@ -6,6 +6,7 @@ import {
   NOTIFICATION_DELIVERY_QUEUE_PORT,
 } from '@contexts/notifications/application/ports/notification-delivery-queue.port';
 import { NotificationCreatedEvent } from '@contexts/notifications/domain/events/notification-created/notification-created.event';
+import { NotificationDeliveryModeEnum } from '@contexts/notifications/domain/enums/notification-delivery-mode.enum';
 
 /**
  * Triggers durable, retrying delivery right after a notification is
@@ -29,6 +30,13 @@ export class DeliverNotificationOnCreatedHandler implements IEventHandler<Notifi
   ) {}
 
   async handle(event: NotificationCreatedEvent): Promise<void> {
+    if (event.data.deliveryMode === NotificationDeliveryModeEnum.RECORD_ONLY) {
+      this.logger.log(
+        `Skipping enqueue for notification ${event.data.id}: deliveryMode is RECORD_ONLY`,
+      );
+      return;
+    }
+
     this.logger.log(`Enqueuing delivery for notification ${event.data.id}`);
     await this.deliveryQueuePort.enqueue(event.data.id);
   }

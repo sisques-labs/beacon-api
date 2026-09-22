@@ -54,4 +54,21 @@ describe('DeliverNotificationOnCreatedHandler', () => {
     expect(queuePort.enqueue).toHaveBeenCalledTimes(1);
     expect(queuePort.enqueue).toHaveBeenCalledWith(NOTIFICATION_ID);
   });
+
+  it('does not enqueue when deliveryMode is RECORD_ONLY', async () => {
+    const event = new NotificationCreatedEvent(
+      {
+        eventType: 'NotificationCreatedEvent',
+        aggregateRootId: NOTIFICATION_ID,
+        aggregateRootType: 'NotificationAggregate',
+        entityId: NOTIFICATION_ID,
+        entityType: 'Notification',
+      },
+      { ...EVENT_DATA, deliveryMode: 'RECORD_ONLY', status: 'SKIPPED' },
+    );
+
+    await handler.handle(event);
+
+    expect(queuePort.enqueue).not.toHaveBeenCalled();
+  });
 });
