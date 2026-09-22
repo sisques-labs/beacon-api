@@ -1,6 +1,7 @@
 import { vi } from 'vitest';
 
 import { NotificationChannelEnum } from '@contexts/notifications/domain/enums/notification-channel.enum';
+import { NotificationDeliveryModeEnum } from '@contexts/notifications/domain/enums/notification-delivery-mode.enum';
 import { NotificationStatusEnum } from '@contexts/notifications/domain/enums/notification-status.enum';
 
 const registerEnumType = vi.fn();
@@ -10,7 +11,7 @@ vi.mock('@nestjs/graphql', () => ({
 }));
 
 describe('notification-registered-enums.graphql', () => {
-  it('registers NotificationChannelEnum and NotificationStatusEnum', async () => {
+  it('registers NotificationChannelEnum, NotificationStatusEnum, and NotificationDeliveryModeEnum', async () => {
     await import('./notification-registered-enums.graphql');
 
     expect(registerEnumType).toHaveBeenCalledWith(
@@ -20,6 +21,10 @@ describe('notification-registered-enums.graphql', () => {
     expect(registerEnumType).toHaveBeenCalledWith(
       NotificationStatusEnum,
       expect.objectContaining({ name: 'NotificationStatusEnum' }),
+    );
+    expect(registerEnumType).toHaveBeenCalledWith(
+      NotificationDeliveryModeEnum,
+      expect.objectContaining({ name: 'NotificationDeliveryModeEnum' }),
     );
   });
 });

@@ -1,6 +1,7 @@
 import { registerEnumType } from '@nestjs/graphql';
 
 import { NotificationChannelEnum } from '@contexts/notifications/domain/enums/notification-channel.enum';
+import { NotificationDeliveryModeEnum } from '@contexts/notifications/domain/enums/notification-delivery-mode.enum';
 import { NotificationStatusEnum } from '@contexts/notifications/domain/enums/notification-status.enum';
 
 const registeredNotificationEnums = [
@@ -13,6 +14,12 @@ const registeredNotificationEnums = [
     enum: NotificationStatusEnum,
     name: 'NotificationStatusEnum',
     description: 'The current status of a notification',
+  },
+  {
+    enum: NotificationDeliveryModeEnum,
+    name: 'NotificationDeliveryModeEnum',
+    description:
+      'Whether a notification is actually delivered or only recorded (RECORD_ONLY skips outbound delivery)',
   },
 ];
 
