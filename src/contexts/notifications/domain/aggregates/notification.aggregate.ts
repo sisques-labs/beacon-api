@@ -6,6 +6,7 @@ import { NotificationCreatedEvent } from '@contexts/notifications/domain/events/
 import { NotificationFailedEvent } from '@contexts/notifications/domain/events/notification-failed/notification-failed.event';
 import { NotificationReadEvent } from '@contexts/notifications/domain/events/notification-read/notification-read.event';
 import { NotificationSentEvent } from '@contexts/notifications/domain/events/notification-sent/notification-sent.event';
+import { NotificationSkippedEvent } from '@contexts/notifications/domain/events/notification-skipped/notification-skipped.event';
 import { InvalidNotificationStatusTransitionException } from '@contexts/notifications/domain/exceptions/invalid-notification-status-transition.exception';
 import { INotification } from '@contexts/notifications/domain/interfaces/notification.interface';
 import { INotificationPrimitives } from '@contexts/notifications/domain/primitives/notification.primitives';
@@ -13,6 +14,7 @@ import { NotificationBodyValueObject } from '@contexts/notifications/domain/valu
 import { NotificationCancelledAtValueObject } from '@contexts/notifications/domain/value-objects/notification-cancelled-at/notification-cancelled-at.value-object';
 import { NotificationChannelValueObject } from '@contexts/notifications/domain/value-objects/notification-channel/notification-channel.value-object';
 import { NotificationDedupeKeyValueObject } from '@contexts/notifications/domain/value-objects/notification-dedupe-key/notification-dedupe-key.value-object';
+import { NotificationDeliveryModeValueObject } from '@contexts/notifications/domain/value-objects/notification-delivery-mode/notification-delivery-mode.value-object';
 import { NotificationFailureReasonValueObject } from '@contexts/notifications/domain/value-objects/notification-failure-reason/notification-failure-reason.value-object';
 import { NotificationReadAtValueObject } from '@contexts/notifications/domain/value-objects/notification-read-at/notification-read-at.value-object';
 import { NotificationSentAtValueObject } from '@contexts/notifications/domain/value-objects/notification-sent-at/notification-sent-at.value-object';
@@ -29,6 +31,7 @@ export class NotificationAggregate extends BaseAggregate {
   private readonly _body: NotificationBodyValueObject;
   private readonly _sourceService: NotificationSourceServiceValueObject;
   private readonly _dedupeKey: NotificationDedupeKeyValueObject;
+  private readonly _deliveryMode: NotificationDeliveryModeValueObject;
   private _failureReason: NotificationFailureReasonValueObject | null;
   private _sentAt: NotificationSentAtValueObject | null;
   private _readAt: NotificationReadAtValueObject | null;
@@ -44,6 +47,7 @@ export class NotificationAggregate extends BaseAggregate {
     this._body = props.body;
     this._sourceService = props.sourceService;
     this._dedupeKey = props.dedupeKey;
+    this._deliveryMode = props.deliveryMode;
     this._failureReason = props.failureReason;
     this._sentAt = props.sentAt;
     this._readAt = props.readAt;
@@ -113,6 +117,23 @@ export class NotificationAggregate extends BaseAggregate {
     );
   }
 
+  public skip(): void {
+    this.assertTransition(
+      NotificationStatusEnum.PENDING,
+      NotificationStatusEnum.SKIPPED,
+    );
+    this._status = new NotificationStatusValueObject(
+      NotificationStatusEnum.SKIPPED,
+    );
+    this.touch();
+    this.apply(
+      new NotificationSkippedEvent(
+        this.generateEventMetadata(NotificationSkippedEvent),
+        this.toPrimitives(),
+      ),
+    );
+  }
+
   public read(): void {
     this.assertTransition(
       NotificationStatusEnum.SENT,
@@ -142,6 +163,7 @@ export class NotificationAggregate extends BaseAggregate {
       body: this._body.value,
       sourceService: this._sourceService.value,
       dedupeKey: this._dedupeKey.value,
+      deliveryMode: this._deliveryMode.value,
       failureReason: this._failureReason?.value ?? null,
       sentAt: this._sentAt?.value ?? null,
       readAt: this._readAt?.value ?? null,
@@ -193,6 +215,10 @@ export class NotificationAggregate extends BaseAggregate {
 
   get dedupeKey(): NotificationDedupeKeyValueObject {
     return this._dedupeKey;
+  }
+
+  get deliveryMode(): NotificationDeliveryModeValueObject {
+    return this._deliveryMode;
   }
 
   get failureReason(): NotificationFailureReasonValueObject | null {

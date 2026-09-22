@@ -4,6 +4,7 @@ import { NotificationBodyValueObject } from '@contexts/notifications/domain/valu
 import { NotificationCancelledAtValueObject } from '@contexts/notifications/domain/value-objects/notification-cancelled-at/notification-cancelled-at.value-object';
 import { NotificationChannelValueObject } from '@contexts/notifications/domain/value-objects/notification-channel/notification-channel.value-object';
 import { NotificationDedupeKeyValueObject } from '@contexts/notifications/domain/value-objects/notification-dedupe-key/notification-dedupe-key.value-object';
+import { NotificationDeliveryModeValueObject } from '@contexts/notifications/domain/value-objects/notification-delivery-mode/notification-delivery-mode.value-object';
 import { NotificationFailureReasonValueObject } from '@contexts/notifications/domain/value-objects/notification-failure-reason/notification-failure-reason.value-object';
 import { NotificationReadAtValueObject } from '@contexts/notifications/domain/value-objects/notification-read-at/notification-read-at.value-object';
 import { NotificationSentAtValueObject } from '@contexts/notifications/domain/value-objects/notification-sent-at/notification-sent-at.value-object';
@@ -20,6 +21,7 @@ export interface INotification extends IBaseAggregate {
   body: NotificationBodyValueObject;
   sourceService: NotificationSourceServiceValueObject;
   dedupeKey: NotificationDedupeKeyValueObject;
+  deliveryMode: NotificationDeliveryModeValueObject;
   failureReason: NotificationFailureReasonValueObject | null;
   sentAt: NotificationSentAtValueObject | null;
   readAt: NotificationReadAtValueObject | null;

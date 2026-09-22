@@ -9,6 +9,7 @@ export type INotificationPrimitives = BasePrimitives & {
   body: string;
   sourceService: string;
   dedupeKey: string;
+  deliveryMode: string;
   failureReason: string | null;
   sentAt: Date | null;
   readAt: Date | null;

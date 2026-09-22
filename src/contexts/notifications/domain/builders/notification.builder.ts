@@ -8,12 +8,14 @@ import {
 
 import { NotificationAggregate } from '@contexts/notifications/domain/aggregates/notification.aggregate';
 import { NotificationChannelEnum } from '@contexts/notifications/domain/enums/notification-channel.enum';
+import { NotificationDeliveryModeEnum } from '@contexts/notifications/domain/enums/notification-delivery-mode.enum';
 import { NotificationStatusEnum } from '@contexts/notifications/domain/enums/notification-status.enum';
 import { NotificationViewModel } from '@contexts/notifications/domain/view-models/notification.view-model';
 import { NotificationBodyValueObject } from '@contexts/notifications/domain/value-objects/notification-body/notification-body.value-object';
 import { NotificationCancelledAtValueObject } from '@contexts/notifications/domain/value-objects/notification-cancelled-at/notification-cancelled-at.value-object';
 import { NotificationChannelValueObject } from '@contexts/notifications/domain/value-objects/notification-channel/notification-channel.value-object';
 import { NotificationDedupeKeyValueObject } from '@contexts/notifications/domain/value-objects/notification-dedupe-key/notification-dedupe-key.value-object';
+import { NotificationDeliveryModeValueObject } from '@contexts/notifications/domain/value-objects/notification-delivery-mode/notification-delivery-mode.value-object';
 import { NotificationFailureReasonValueObject } from '@contexts/notifications/domain/value-objects/notification-failure-reason/notification-failure-reason.value-object';
 import { NotificationReadAtValueObject } from '@contexts/notifications/domain/value-objects/notification-read-at/notification-read-at.value-object';
 import { NotificationSentAtValueObject } from '@contexts/notifications/domain/value-objects/notification-sent-at/notification-sent-at.value-object';
@@ -34,6 +36,7 @@ export class NotificationBuilder extends BaseBuilder<
   private _body!: string;
   private _sourceService!: string;
   private _dedupeKey!: string;
+  private _deliveryMode: string = NotificationDeliveryModeEnum.DELIVER;
   private _failureReason: string | null = null;
   private _sentAt: Date | null = null;
   private _readAt: Date | null = null;
@@ -79,6 +82,11 @@ export class NotificationBuilder extends BaseBuilder<
     return this;
   }
 
+  withDeliveryMode(deliveryMode: string): this {
+    this._deliveryMode = deliveryMode;
+    return this;
+  }
+
   withFailureReason(failureReason: string | null): this {
     this._failureReason = failureReason;
     return this;
@@ -117,6 +125,9 @@ export class NotificationBuilder extends BaseBuilder<
         this._sourceService,
       ),
       dedupeKey: new NotificationDedupeKeyValueObject(this._dedupeKey),
+      deliveryMode: new NotificationDeliveryModeValueObject(
+        this._deliveryMode as NotificationDeliveryModeEnum,
+      ),
       failureReason:
         this._failureReason !== null
           ? new NotificationFailureReasonValueObject(this._failureReason)
@@ -150,6 +161,7 @@ export class NotificationBuilder extends BaseBuilder<
       body: this._body,
       sourceService: this._sourceService,
       dedupeKey: this._dedupeKey,
+      deliveryMode: this._deliveryMode,
       failureReason: this._failureReason,
       sentAt: this._sentAt,
       readAt: this._readAt,

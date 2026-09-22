@@ -2,6 +2,7 @@ import { FieldIsRequiredException } from '@sisques-labs/nestjs-kit';
 
 import { NotificationAggregate } from '@contexts/notifications/domain/aggregates/notification.aggregate';
 import { NotificationChannelEnum } from '@contexts/notifications/domain/enums/notification-channel.enum';
+import { NotificationDeliveryModeEnum } from '@contexts/notifications/domain/enums/notification-delivery-mode.enum';
 import { NotificationStatusEnum } from '@contexts/notifications/domain/enums/notification-status.enum';
 import { NotificationViewModel } from '@contexts/notifications/domain/view-models/notification.view-model';
 
@@ -46,10 +47,23 @@ describe('NotificationBuilder', () => {
       expect(aggregate.body.value).toBe('Body text');
       expect(aggregate.sourceService.value).toBe('gardenia-api');
       expect(aggregate.dedupeKey.value).toBe('gardenia:plant:1:watered');
+      expect(aggregate.deliveryMode.value).toBe(
+        NotificationDeliveryModeEnum.DELIVER,
+      );
       expect(aggregate.failureReason).toBeNull();
       expect(aggregate.sentAt).toBeNull();
       expect(aggregate.readAt).toBeNull();
       expect(aggregate.cancelledAt).toBeNull();
+    });
+
+    it('honors an explicit withDeliveryMode() override', () => {
+      const aggregate = seed(builder)
+        .withDeliveryMode(NotificationDeliveryModeEnum.RECORD_ONLY)
+        .build();
+
+      expect(aggregate.deliveryMode.value).toBe(
+        NotificationDeliveryModeEnum.RECORD_ONLY,
+      );
     });
 
     it.each([
@@ -102,6 +116,7 @@ describe('NotificationBuilder', () => {
       expect(vm.body).toBe('Body text');
       expect(vm.sourceService).toBe('gardenia-api');
       expect(vm.dedupeKey).toBe('gardenia:plant:1:watered');
+      expect(vm.deliveryMode).toBe(NotificationDeliveryModeEnum.DELIVER);
       expect(vm.failureReason).toBeNull();
       expect(vm.sentAt).toBeNull();
       expect(vm.readAt).toBeNull();

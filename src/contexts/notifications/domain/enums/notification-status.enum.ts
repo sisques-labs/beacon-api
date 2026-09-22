@@ -4,4 +4,5 @@ export enum NotificationStatusEnum {
   FAILED = 'FAILED',
   CANCELLED = 'CANCELLED',
   READ = 'READ',
+  SKIPPED = 'SKIPPED',
 }

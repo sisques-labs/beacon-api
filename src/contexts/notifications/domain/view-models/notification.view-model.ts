@@ -11,6 +11,7 @@ export class NotificationViewModel extends BaseViewModel {
   public readonly body: string;
   public readonly sourceService: string;
   public readonly dedupeKey: string;
+  public readonly deliveryMode: string;
   public readonly failureReason: string | null;
   public readonly sentAt: Date | null;
   public readonly readAt: Date | null;
@@ -26,6 +27,7 @@ export class NotificationViewModel extends BaseViewModel {
     this.body = props.body;
     this.sourceService = props.sourceService;
     this.dedupeKey = props.dedupeKey;
+    this.deliveryMode = props.deliveryMode;
     this.failureReason = props.failureReason;
     this.sentAt = props.sentAt;
     this.readAt = props.readAt;
