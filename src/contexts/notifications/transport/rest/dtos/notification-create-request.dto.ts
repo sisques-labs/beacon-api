@@ -1,7 +1,15 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsIn, IsNotEmpty, IsString, IsUUID } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsEnum,
+  IsIn,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 
 import { NotificationChannelEnum } from '@contexts/notifications/domain/enums/notification-channel.enum';
+import { NotificationDeliveryModeEnum } from '@contexts/notifications/domain/enums/notification-delivery-mode.enum';
 
 export class NotificationCreateRequestDto {
   @ApiProperty()
@@ -40,4 +48,12 @@ export class NotificationCreateRequestDto {
   @IsString()
   @IsNotEmpty()
   dedupeKey!: string;
+
+  @ApiPropertyOptional({
+    enum: NotificationDeliveryModeEnum,
+    default: NotificationDeliveryModeEnum.DELIVER,
+  })
+  @IsOptional()
+  @IsEnum(NotificationDeliveryModeEnum)
+  deliveryMode?: NotificationDeliveryModeEnum;
 }
