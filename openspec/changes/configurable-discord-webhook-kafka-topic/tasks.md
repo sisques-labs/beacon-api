@@ -44,14 +44,14 @@ Chain strategy: feature-branch-chain
 
 ## Phase 2: PR #2 — Application (Slice 2a, base: PR1 branch)
 
-- [ ] 2.1 RED extend `application/commands/create-notification/create-notification.command.spec.ts` — absent ⇒ `DELIVER`; `RECORD_ONLY` preserved; invalid throws
-- [ ] 2.2 GREEN `deliveryMode` field + ctor normalization in `create-notification.command.ts`
-- [ ] 2.3 RED extend `create-notification.handler.spec.ts` — `RECORD_ONLY` ⇒ saved aggregate `SKIPPED`, `save` called once; `DELIVER` ⇒ `PENDING` (regression)
-- [ ] 2.4 GREEN `.withDeliveryMode()` + `aggregate.skip()` call in `create-notification.handler.ts`
-- [ ] 2.5 RED extend `application/events/deliver-notification-on-created.handler.spec.ts` — `RECORD_ONLY` ⇒ enqueue **not** called; `DELIVER` ⇒ called
-- [ ] 2.6 GREEN early-return guard on `deliveryMode === RECORD_ONLY` in `deliver-notification-on-created.handler.ts`
-- [ ] 2.7 RED extend `application/commands/deliver-notification/deliver-notification.handler.spec.ts` — `PENDING`+`RECORD_ONLY` ⇒ `senderPort.send` **not** called, status `SKIPPED`, saved; already-`SKIPPED` ⇒ existing early return unaffected
-- [ ] 2.8 GREEN `RECORD_ONLY` branch (defense in depth, before `senderPort.send()`) in `deliver-notification.handler.ts`
+- [x] 2.1 RED extend `application/commands/create-notification/create-notification.command.spec.ts` — absent ⇒ `DELIVER`; `RECORD_ONLY` preserved; invalid throws
+- [x] 2.2 GREEN `deliveryMode` field + ctor normalization in `create-notification.command.ts`
+- [x] 2.3 RED extend `create-notification.handler.spec.ts` — `RECORD_ONLY` ⇒ saved aggregate `SKIPPED`, `save` called once; `DELIVER` ⇒ `PENDING` (regression)
+- [x] 2.4 GREEN `.withDeliveryMode()` + `aggregate.skip()` call in `create-notification.handler.ts`
+- [x] 2.5 RED extend `application/events/deliver-notification-on-created.handler.spec.ts` — `RECORD_ONLY` ⇒ enqueue **not** called; `DELIVER` ⇒ called
+- [x] 2.6 GREEN early-return guard on `deliveryMode === RECORD_ONLY` in `deliver-notification-on-created.handler.ts`
+- [x] 2.7 RED extend `application/commands/deliver-notification/deliver-notification.handler.spec.ts` — `PENDING`+`RECORD_ONLY` ⇒ `senderPort.send` **not** called, status `SKIPPED`, saved; already-`SKIPPED` ⇒ existing early return unaffected
+- [x] 2.8 GREEN `RECORD_ONLY` branch (defense in depth, before `senderPort.send()`) in `deliver-notification.handler.ts`
 
 ## Phase 3: PR #3 — Transport (Slice 2b, base: PR2 branch)
 
