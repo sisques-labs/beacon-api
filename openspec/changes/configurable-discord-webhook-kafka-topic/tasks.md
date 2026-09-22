@@ -28,19 +28,19 @@ Chain strategy: feature-branch-chain
 
 ## Phase 1: PR #1 — Domain + Persistence (Slice 1)
 
-- [ ] 1.1 RED `domain/value-objects/notification-delivery-mode/notification-delivery-mode.value-object.spec.ts` — accepts `DELIVER`/`RECORD_ONLY`; rejects `'MAYBE'` and URL-shaped string (SSRF D3 case)
-- [ ] 1.2 GREEN `domain/enums/notification-delivery-mode.enum.ts` + `notification-delivery-mode.value-object.ts` (extends `EnumValueObject`)
-- [ ] 1.3 GREEN append `SKIPPED` to `domain/enums/notification-status.enum.ts`
-- [ ] 1.4 Create `domain/events/notification-skipped/notification-skipped.event.ts` (copy `notification-cancelled.event.ts` shape)
-- [ ] 1.5 RED extend `domain/aggregates/notification.aggregate.spec.ts` — `skip()` PENDING→SKIPPED + event; `skip()` from SENT/FAILED/CANCELLED/SKIPPED throws; `sent()/fail()/cancel()/read()` from SKIPPED throw; `toPrimitives()` carries `deliveryMode`
-- [ ] 1.6 GREEN `notification.aggregate.ts` — `_deliveryMode` field, `skip()`, getter, `toPrimitives()` entry; update `domain/interfaces/notification.interface.ts`, `domain/primitives/notification.primitives.ts`, `domain/view-models/notification.view-model.ts`
-- [ ] 1.7 RED extend `domain/builders/notification.builder.spec.ts` — defaults `DELIVER`; `withDeliveryMode()`; view model carries it
-- [ ] 1.8 GREEN `withDeliveryMode()` + default in `notification.builder.ts`
-- [ ] 1.9 RED extend `infrastructure/persistence/typeorm/mappers/notification-typeorm.mapper.spec.ts` — round-trips `deliveryMode` + `SKIPPED`
-- [ ] 1.10 GREEN `deliveryMode` mapping in `notification-typeorm.mapper.ts` + `@Column` in `infrastructure/persistence/typeorm/entities/notification.entity.ts`
-- [ ] 1.11 Create `src/database/migrations/{ts}-add-notification-delivery-mode.ts` — additive `ADD COLUMN "deliveryMode" varchar(20) NOT NULL DEFAULT 'DELIVER'`; down drops column. Migration plan: additive, non-breaking, no data backfill needed
-- [ ] 1.12 Extend `test/integration/notifications/notification-typeorm-repositories.integration-spec.ts` — persist/read `RECORD_ONLY` + `SKIPPED` against real Postgres
-- [ ] 1.13 Ops runbook note (PR description, not code): before running the down migration, operators MUST run `SELECT count(*) FROM notifications WHERE status='SKIPPED'` and triage those rows (accept read failures on `NotificationStatusValueObject` hydration, or `UPDATE notifications SET status='CANCELLED' WHERE status='SKIPPED'`) — reverted code cannot hydrate a `SKIPPED` row
+- [x] 1.1 RED `domain/value-objects/notification-delivery-mode/notification-delivery-mode.value-object.spec.ts` — accepts `DELIVER`/`RECORD_ONLY`; rejects `'MAYBE'` and URL-shaped string (SSRF D3 case)
+- [x] 1.2 GREEN `domain/enums/notification-delivery-mode.enum.ts` + `notification-delivery-mode.value-object.ts` (extends `EnumValueObject`)
+- [x] 1.3 GREEN append `SKIPPED` to `domain/enums/notification-status.enum.ts`
+- [x] 1.4 Create `domain/events/notification-skipped/notification-skipped.event.ts` (copy `notification-cancelled.event.ts` shape)
+- [x] 1.5 RED extend `domain/aggregates/notification.aggregate.spec.ts` — `skip()` PENDING→SKIPPED + event; `skip()` from SENT/FAILED/CANCELLED/SKIPPED throws; `sent()/fail()/cancel()/read()` from SKIPPED throw; `toPrimitives()` carries `deliveryMode`
+- [x] 1.6 GREEN `notification.aggregate.ts` — `_deliveryMode` field, `skip()`, getter, `toPrimitives()` entry; update `domain/interfaces/notification.interface.ts`, `domain/primitives/notification.primitives.ts`, `domain/view-models/notification.view-model.ts`
+- [x] 1.7 RED extend `domain/builders/notification.builder.spec.ts` — defaults `DELIVER`; `withDeliveryMode()`; view model carries it
+- [x] 1.8 GREEN `withDeliveryMode()` + default in `notification.builder.ts`
+- [x] 1.9 RED extend `infrastructure/persistence/typeorm/mappers/notification-typeorm.mapper.spec.ts` — round-trips `deliveryMode` + `SKIPPED`
+- [x] 1.10 GREEN `deliveryMode` mapping in `notification-typeorm.mapper.ts` + `@Column` in `infrastructure/persistence/typeorm/entities/notification.entity.ts`
+- [x] 1.11 Create `src/database/migrations/{ts}-add-notification-delivery-mode.ts` — additive `ADD COLUMN "deliveryMode" varchar(20) NOT NULL DEFAULT 'DELIVER'`; down drops column. Migration plan: additive, non-breaking, no data backfill needed
+- [x] 1.12 Extend `test/integration/notifications/notification-typeorm-repositories.integration-spec.ts` — persist/read `RECORD_ONLY` + `SKIPPED` against real Postgres
+- [x] 1.13 Ops runbook note (PR description, not code): before running the down migration, operators MUST run `SELECT count(*) FROM notifications WHERE status='SKIPPED'` and triage those rows (accept read failures on `NotificationStatusValueObject` hydration, or `UPDATE notifications SET status='CANCELLED' WHERE status='SKIPPED'`) — reverted code cannot hydrate a `SKIPPED` row
 
 ## Phase 2: PR #2 — Application (Slice 2a, base: PR1 branch)
 
