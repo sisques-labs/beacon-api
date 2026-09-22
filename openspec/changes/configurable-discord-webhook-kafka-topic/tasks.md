@@ -76,15 +76,15 @@ Chain strategy: feature-branch-chain
 
 ## Phase 4: PR #4 — Criteria Contract Surface (Slice 3a, base: PR3 branch)
 
-- [ ] 4.1 Create `transport/graphql/enums/notification-queryable-field.enum.ts` — 6-field whitelist: `tenantId, recipientUserId, channel, status, deliveryMode, createdAt`
-- [ ] 4.2 RED `transport/graphql/registries/notification-filterable-fields.registry.spec.ts` (mandatory) — every field has an entry; `deliveryMode`/`status` descriptors reference real domain enums incl. `SKIPPED`; **`FilterValidationPipe` rejects an unknown field (`'body'`) with `BadRequestException`**; rejects an invalid enum value; accepts a valid `in` array, rejects one with an invalid member; pins all 8 `FilterOperator` cases per D-J
-- [ ] 4.3 GREEN create `notification-filterable-fields.registry.ts`
-- [ ] 4.4 RED `notification-filter.input.spec.ts` + `notification-sort.input.spec.ts` — `field` rejects non-enum via `@IsEnum`; class/GraphQL type names correct
-- [ ] 4.5 GREEN create `notification-filter.input.ts` + `notification-sort.input.ts` via `createFilterInput`/`createSortInput`
-- [ ] 4.6 RED `notification-find-by-criteria.request.dto.spec.ts` — absent input; empty `filters` default `[]`; nested validation rejects a bad filter
-- [ ] 4.7 GREEN create `notification-find-by-criteria.request.dto.ts`
-- [ ] 4.8 RED extend `notification-registered-enums.graphql.spec.ts` — `NotificationQueryableFieldEnum` registered
-- [ ] 4.9 GREEN register `NotificationQueryableField` in `notification-registered-enums.graphql.ts`
+- [x] 4.1 Create `transport/graphql/enums/notification-queryable-field.enum.ts` — 6-field whitelist: `tenantId, recipientUserId, channel, status, deliveryMode, createdAt`
+- [x] 4.2 RED `transport/graphql/registries/notification-filterable-fields.registry.spec.ts` (mandatory) — every field has an entry; `deliveryMode`/`status` descriptors reference real domain enums incl. `SKIPPED`; **`FilterValidationPipe` rejects an unknown field (`'body'`) with `BadRequestException`**; rejects an invalid enum value; accepts a valid `in` array, rejects one with an invalid member; pins all 8 `FilterOperator` cases per D-J
+- [x] 4.3 GREEN create `notification-filterable-fields.registry.ts`
+- [x] 4.4 RED `notification-filter.input.spec.ts` + `notification-sort.input.spec.ts` — `field` rejects non-enum via `@IsEnum`; class/GraphQL type names correct
+- [x] 4.5 GREEN create `notification-filter.input.ts` + `notification-sort.input.ts` via `createFilterInput`/`createSortInput`
+- [x] 4.6 RED `notification-find-by-criteria.request.dto.spec.ts` — absent input; empty `filters` default `[]`; nested validation rejects a bad filter
+- [x] 4.7 GREEN create `notification-find-by-criteria.request.dto.ts`
+- [x] 4.8 RED extend `notification-registered-enums.graphql.spec.ts` — `NotificationQueryableFieldEnum` registered
+- [x] 4.9 GREEN register `NotificationQueryableField` in `notification-registered-enums.graphql.ts`
 
 ## Phase 5: PR #5 — Criteria Query + Resolver (Slice 3b, base: PR4 branch)
 

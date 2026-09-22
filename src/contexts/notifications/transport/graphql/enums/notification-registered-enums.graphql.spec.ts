@@ -3,6 +3,7 @@ import { vi } from 'vitest';
 import { NotificationChannelEnum } from '@contexts/notifications/domain/enums/notification-channel.enum';
 import { NotificationDeliveryModeEnum } from '@contexts/notifications/domain/enums/notification-delivery-mode.enum';
 import { NotificationStatusEnum } from '@contexts/notifications/domain/enums/notification-status.enum';
+import { NotificationQueryableField } from '@contexts/notifications/transport/graphql/enums/notification-queryable-field.enum';
 
 const registerEnumType = vi.fn();
 
@@ -34,6 +35,15 @@ describe('notification-registered-enums.graphql', () => {
     expect(registerEnumType).toHaveBeenCalledWith(
       NotificationDeliveryModeEnum,
       expect.objectContaining({ name: 'NotificationDeliveryModeEnum' }),
+    );
+  });
+
+  it('registers NotificationQueryableFieldEnum', async () => {
+    await import('./notification-registered-enums.graphql');
+
+    expect(registerEnumType).toHaveBeenCalledWith(
+      NotificationQueryableField,
+      expect.objectContaining({ name: 'NotificationQueryableFieldEnum' }),
     );
   });
 });
