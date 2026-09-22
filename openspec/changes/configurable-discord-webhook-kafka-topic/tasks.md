@@ -88,14 +88,14 @@ Chain strategy: feature-branch-chain
 
 ## Phase 5: PR #5 — Criteria Query + Resolver (Slice 3b, base: PR4 branch)
 
-- [ ] 5.1 RED `application/queries/notification-find-by-criteria/notification-find-by-criteria.query.spec.ts` — carries `Criteria` unchanged
-- [ ] 5.2 GREEN create `notification-find-by-criteria.query.ts`
-- [ ] 5.3 RED `notification-find-by-criteria.handler.spec.ts` — delegates `findByCriteria` with exact `Criteria`; returns `PaginatedResult` unchanged; empty page returned, not thrown (`Mocked<INotificationReadRepository>`)
-- [ ] 5.4 GREEN create `notification-find-by-criteria.handler.ts`; register in `notifications.module.ts` `QUERY_HANDLERS`
-- [ ] 5.5 RED extend `transport/graphql/mappers/notification.mapper.spec.ts` — `toPaginatedResponseDtoFromPaginatedResult` maps `items/total/page/perPage/totalPages` + per-item `deliveryMode`/`SKIPPED`
-- [ ] 5.6 GREEN create `transport/graphql/dtos/responses/notification-paginated.response.dto.ts`; add mapper method
-- [ ] 5.7 RED extend `transport/graphql/resolvers/queries/notification-queries.resolver.spec.ts` — dispatches `NotificationFindByCriteriaQuery` via `QueryBus`, maps via mapper, `undefined` input ⇒ empty `Criteria`; asserts **`FilterValidationPipe` wired as the 3rd `@Args` argument**
-- [ ] 5.8 GREEN add `notificationsFindByCriteria` resolver method with `new FilterValidationPipe(notificationFilterableFields)`
-- [ ] 5.9 Extend `test/integration/notifications/notification-typeorm-repositories.integration-spec.ts` — `deliveryMode eq RECORD_ONLY` / `status eq SKIPPED` / `in` both / pagination totals, real Postgres
-- [ ] 5.10 Create `test/notification-find-by-criteria.e2e-spec.ts` — GraphQL filtering `deliveryMode EQUALS RECORD_ONLY` and `status EQUALS SKIPPED`; unknown filter field ⇒ error, no rows leaked
-- [ ] 5.11 Update `src/contexts/notifications/README.md` — document `findByCriteria` capability
+- [x] 5.1 RED `application/queries/notification-find-by-criteria/notification-find-by-criteria.query.spec.ts` — carries `Criteria` unchanged
+- [x] 5.2 GREEN create `notification-find-by-criteria.query.ts`
+- [x] 5.3 RED `notification-find-by-criteria.handler.spec.ts` — delegates `findByCriteria` with exact `Criteria`; returns `PaginatedResult` unchanged; empty page returned, not thrown (`Mocked<INotificationReadRepository>`)
+- [x] 5.4 GREEN create `notification-find-by-criteria.handler.ts`; register in `notifications.module.ts` `QUERY_HANDLERS`
+- [x] 5.5 RED extend `transport/graphql/mappers/notification.mapper.spec.ts` — `toPaginatedResponseDtoFromPaginatedResult` maps `items/total/page/perPage/totalPages` + per-item `deliveryMode`/`SKIPPED`
+- [x] 5.6 GREEN create `transport/graphql/dtos/responses/notification-paginated.response.dto.ts`; add mapper method
+- [x] 5.7 RED extend `transport/graphql/resolvers/queries/notification-queries.resolver.spec.ts` — dispatches `NotificationFindByCriteriaQuery` via `QueryBus`, maps via mapper, `undefined` input ⇒ empty `Criteria`; asserts **`FilterValidationPipe` wired as the 3rd `@Args` argument**
+- [x] 5.8 GREEN add `notificationsFindByCriteria` resolver method with `new FilterValidationPipe(notificationFilterableFields)`
+- [x] 5.9 Extend `test/integration/notifications/notification-typeorm-repositories.integration-spec.ts` — `deliveryMode eq RECORD_ONLY` / `status eq SKIPPED` / `in` both / pagination totals, real Postgres
+- [x] 5.10 Create `test/notification-find-by-criteria.e2e-spec.ts` — GraphQL filtering `deliveryMode EQUALS RECORD_ONLY` and `status EQUALS SKIPPED`; unknown filter field ⇒ error, no rows leaked
+- [x] 5.11 Update `src/contexts/notifications/README.md` — document `findByCriteria` capability

@@ -3,11 +3,12 @@
 The first bounded context in this service. It defines the pattern every
 subsequent context follows — see `.claude/skills/architecture/SKILL.md`.
 
-## Current state (persistence + Kafka ingestion + synchronous REST/GraphQL creation + durable, retrying Discord delivery + get-by-id query)
+## Current state (persistence + Kafka ingestion + synchronous REST/GraphQL creation + durable, retrying Discord delivery + get-by-id and findByCriteria queries)
 
 `NotificationAggregate` is persistable, ingestible from Kafka, creatable
 synchronously over REST and GraphQL, durably delivered to Discord with
-retry/backoff, and queryable by id.
+retry/backoff, and queryable both by id and by a whitelisted set of
+filter/sort criteria.
 
 ### Domain
 
@@ -223,6 +224,52 @@ notification permanently `PENDING` (see
   `NotificationFindByIdRequestDto`) — returns a GraphQL error (no unhandled
   crash) on an unknown id, through the same `BaseExceptionFilter`.
 
+### Query: list notifications by criteria (GraphQL only)
+
+`query { notificationsFindByCriteria(input: { filters, sorts, pagination })
+{ total page perPage totalPages items { ... } } }` — the reference
+implementation of the architecture skill's mandatory
+[Find-By-Criteria Filters](../../../.claude/skills/architecture/SKILL.md#find-by-criteria-filters-mandatory-every-context)
+pattern for the next context to copy.
+
+- **Queryable fields** — `NotificationQueryableField` (GraphQL:
+  `NotificationQueryableFieldEnum`) whitelists exactly six columns:
+  `tenantId`, `recipientUserId`, `channel`, `status`, `deliveryMode`,
+  `createdAt`. `title`/`body` are deliberately excluded (unindexed
+  `varchar(5000)` free-text — DoS + PII surface), along with `dedupeKey`,
+  `failureReason`, `sentAt`, `readAt`, `cancelledAt`, `updatedAt`, and `id`
+  (use `notificationFindById` instead).
+- **`notificationFilterableFields`** (`transport/graphql/registries/`) maps
+  each queryable field to its expected value shape; `channel`, `status`, and
+  `deliveryMode` reference the real domain enums (never a duplicated string
+  list), so `SKIPPED` is filterable with no registry edit.
+- **Security-load-bearing**: `applyCriteriaToQueryBuilder` (kit) interpolates
+  `filter.field` directly into the generated SQL column reference — only the
+  filter *value* is parameterized. `@IsEnum(NotificationQueryableField)` on
+  the generated `NotificationFilterInput.field`, plus
+  `FilterValidationPipe(notificationFilterableFields)` wired as the third
+  `@Args` argument on `notificationsFindByCriteria`, are the only guards
+  between a caller-supplied field name and raw SQL; an unknown field is
+  rejected with a `BadRequestException`/GraphQL error before it ever reaches
+  the query builder.
+- `NotificationFindByCriteriaQuery` / `NotificationFindByCriteriaHandler`
+  (`application/queries/notification-find-by-criteria/`) — delegates to
+  `INotificationReadRepository.findByCriteria`, already implemented on
+  `NotificationTypeormReadRepository` via the kit's
+  `applyCriteriaToQueryBuilder`. No assert-exists service: an empty page is
+  a valid result, not a 404.
+- `NotificationGraphQLMapper.toPaginatedResponseDtoFromPaginatedResult`
+  reuses the existing per-item `toResponseDtoFromViewModel`, so
+  `deliveryMode` and `SKIPPED` flow through the paginated response with no
+  extra mapping code.
+- REST does not expose `findByCriteria` — the kit's entire Criteria
+  transport surface (`createFilterInput`/`createSortInput`,
+  `BaseFindByCriteriaInput`, `FilterValidationPipe`) is GraphQL-only; REST
+  keeps `GET /:id` + `POST`.
+- E2E coverage: `test/notification-find-by-criteria.e2e-spec.ts` —
+  `deliveryMode EQUALS RECORD_ONLY`, `status EQUALS SKIPPED`, and an unknown
+  filter field rejected with no rows leaked, against real Postgres.
+
 ## Out of scope for this context (v1)
 
 - Exactly-once delivery — at-least-once is accepted (design.md D5); the D5
@@ -233,7 +280,8 @@ notification permanently `PENDING` (see
 - Email and Push channels — no sender/adapter exists for them.
 - Authentication on the ingestion topic (accepted MVP risk, see
   `openspec/changes/beacon-mvp/proposal.md`).
-- `findByCriteria` GraphQL boilerplate (queryable-field enum, filterable
-  registry, filter/sort inputs) — the repositories implement
-  `findByCriteria` for interface conformance only; no transport exposes it
-  yet.
+- REST `findByCriteria` — GraphQL only (see "Query: list notifications by
+  criteria" above); no REST list endpoint exists.
+- `notificationsFindByCriteria` has no `@UseGuards(JwtAuthGuard)`, matching
+  the existing unguarded `notificationFindById` precedent — same follow-up
+  auth strategy noted for the write side applies here too.
