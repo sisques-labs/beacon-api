@@ -27,4 +27,13 @@ describe('notification-registered-enums.graphql', () => {
       expect.objectContaining({ name: 'NotificationDeliveryModeEnum' }),
     );
   });
+
+  it('registers NotificationDeliveryModeEnum', async () => {
+    await import('./notification-registered-enums.graphql');
+
+    expect(registerEnumType).toHaveBeenCalledWith(
+      NotificationDeliveryModeEnum,
+      expect.objectContaining({ name: 'NotificationDeliveryModeEnum' }),
+    );
+  });
 });
