@@ -1,9 +1,11 @@
 import { DataSource, DataSourceOptions } from 'typeorm';
 
+import { AddNotificationDeliveryMode1790063262974 } from '../../src/database/migrations/1790063262974-add-notification-delivery-mode';
 import { CreateNotifications1789112026872 } from '../../src/database/migrations/1789112026872-create-notifications';
 
 const TEST_MIGRATIONS: DataSourceOptions['migrations'] = [
   CreateNotifications1789112026872,
+  AddNotificationDeliveryMode1790063262974,
 ];
 
 export function getTestDataSourceOptions(): DataSourceOptions {

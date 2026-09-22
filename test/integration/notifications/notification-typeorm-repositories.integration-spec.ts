@@ -18,7 +18,11 @@ import {
   IntegrationContext,
 } from '../../helpers/integration-bootstrap';
 
-function buildAggregate(overrides: { tenantId?: string; dedupeKey?: string }) {
+function buildAggregate(overrides: {
+  tenantId?: string;
+  dedupeKey?: string;
+  deliveryMode?: string;
+}) {
   return new NotificationBuilder()
     .withId(randomUUID())
     .withTenantId(overrides.tenantId ?? randomUUID())
@@ -28,6 +32,7 @@ function buildAggregate(overrides: { tenantId?: string; dedupeKey?: string }) {
     .withBody('Body')
     .withSourceService('gardenia')
     .withDedupeKey(overrides.dedupeKey ?? randomUUID())
+    .withDeliveryMode(overrides.deliveryMode ?? 'DELIVER')
     .withCreatedAt(new Date())
     .withUpdatedAt(new Date())
     .build();
@@ -122,5 +127,28 @@ describe('Notification TypeORM repositories (integration)', () => {
     await writeRepository.save(first);
 
     await expect(writeRepository.save(second)).resolves.toBeDefined();
+  });
+
+  it('persists and reads back a RECORD_ONLY notification transitioned to SKIPPED', async () => {
+    const aggregate = buildAggregate({ deliveryMode: 'RECORD_ONLY' });
+    aggregate.skip();
+
+    await writeRepository.save(aggregate);
+    const found = await writeRepository.findById(aggregate.id.value);
+    const viewModel = await readRepository.findById(aggregate.id.value);
+
+    expect(found?.deliveryMode.value).toBe('RECORD_ONLY');
+    expect(found?.status.value).toBe('SKIPPED');
+    expect(viewModel?.deliveryMode).toBe('RECORD_ONLY');
+    expect(viewModel?.status).toBe('SKIPPED');
+  });
+
+  it('defaults deliveryMode to DELIVER when not explicitly set', async () => {
+    const aggregate = buildAggregate({});
+
+    await writeRepository.save(aggregate);
+    const found = await writeRepository.findById(aggregate.id.value);
+
+    expect(found?.deliveryMode.value).toBe('DELIVER');
   });
 });

@@ -28,6 +28,7 @@ export class NotificationTypeormMapper extends BaseTypeOrmMapper<
     entity.body = primitives.body;
     entity.sourceService = primitives.sourceService;
     entity.dedupeKey = primitives.dedupeKey;
+    entity.deliveryMode = primitives.deliveryMode;
     entity.failureReason = primitives.failureReason;
     entity.sentAt = primitives.sentAt;
     entity.readAt = primitives.readAt;
@@ -53,6 +54,7 @@ export class NotificationTypeormMapper extends BaseTypeOrmMapper<
       .withBody(entity.body)
       .withSourceService(entity.sourceService)
       .withDedupeKey(entity.dedupeKey)
+      .withDeliveryMode(entity.deliveryMode)
       .withFailureReason(entity.failureReason)
       .withSentAt(entity.sentAt ? this.normalizeDate(entity.sentAt) : null)
       .withReadAt(entity.readAt ? this.normalizeDate(entity.readAt) : null)

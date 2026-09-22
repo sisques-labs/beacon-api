@@ -1,4 +1,5 @@
 import { NotificationChannelEnum } from '@contexts/notifications/domain/enums/notification-channel.enum';
+import { NotificationDeliveryModeEnum } from '@contexts/notifications/domain/enums/notification-delivery-mode.enum';
 import { NotificationStatusEnum } from '@contexts/notifications/domain/enums/notification-status.enum';
 import { NotificationEntity } from '@contexts/notifications/infrastructure/persistence/typeorm/entities/notification.entity';
 import { NotificationTypeormMapper } from '@contexts/notifications/infrastructure/persistence/typeorm/mappers/notification-typeorm.mapper';
@@ -14,6 +15,7 @@ function buildEntity(overrides: Partial<NotificationEntity> = {}) {
   entity.body = 'Body';
   entity.sourceService = 'gardenia';
   entity.dedupeKey = 'dedupe-key-1';
+  entity.deliveryMode = NotificationDeliveryModeEnum.DELIVER;
   entity.failureReason = null;
   entity.sentAt = null;
   entity.readAt = null;
@@ -41,6 +43,7 @@ describe('NotificationTypeormMapper', () => {
     expect(aggregate.body.value).toBe(entity.body);
     expect(aggregate.sourceService.value).toBe(entity.sourceService);
     expect(aggregate.dedupeKey.value).toBe(entity.dedupeKey);
+    expect(aggregate.deliveryMode.value).toBe(entity.deliveryMode);
     expect(aggregate.failureReason).toBeNull();
   });
 
@@ -56,8 +59,28 @@ describe('NotificationTypeormMapper', () => {
     expect(persisted.id).toBe(entity.id);
     expect(persisted.tenantId).toBe(entity.tenantId);
     expect(persisted.dedupeKey).toBe(entity.dedupeKey);
+    expect(persisted.deliveryMode).toBe(entity.deliveryMode);
     expect(persisted.failureReason).toBe('boom');
     expect(persisted.sentAt).toEqual(entity.sentAt);
+  });
+
+  it('round-trips RECORD_ONLY deliveryMode and SKIPPED status', () => {
+    const entity = buildEntity({
+      status: NotificationStatusEnum.SKIPPED,
+      deliveryMode: NotificationDeliveryModeEnum.RECORD_ONLY,
+    });
+
+    const aggregate = mapper.toAggregate(entity);
+    const persisted = mapper.toEntity(aggregate);
+
+    expect(aggregate.status.value).toBe(NotificationStatusEnum.SKIPPED);
+    expect(aggregate.deliveryMode.value).toBe(
+      NotificationDeliveryModeEnum.RECORD_ONLY,
+    );
+    expect(persisted.status).toBe(NotificationStatusEnum.SKIPPED);
+    expect(persisted.deliveryMode).toBe(
+      NotificationDeliveryModeEnum.RECORD_ONLY,
+    );
   });
 
   it('maps an entity to a view model', () => {
@@ -69,5 +92,6 @@ describe('NotificationTypeormMapper', () => {
     expect(viewModel.tenantId).toBe(entity.tenantId);
     expect(viewModel.status).toBe(entity.status);
     expect(viewModel.dedupeKey).toBe(entity.dedupeKey);
+    expect(viewModel.deliveryMode).toBe(entity.deliveryMode);
   });
 });

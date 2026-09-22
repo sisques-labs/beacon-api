@@ -1,6 +1,8 @@
 import { Column, Entity, Unique } from 'typeorm';
 import { BaseTypeormEntity } from '@sisques-labs/nestjs-kit/typeorm';
 
+import { NotificationDeliveryModeEnum } from '@contexts/notifications/domain/enums/notification-delivery-mode.enum';
+
 @Entity('notifications')
 @Unique(['tenantId', 'dedupeKey'])
 export class NotificationEntity extends BaseTypeormEntity {
@@ -27,6 +29,13 @@ export class NotificationEntity extends BaseTypeormEntity {
 
   @Column({ type: 'varchar', length: 255 })
   dedupeKey!: string;
+
+  @Column({
+    type: 'varchar',
+    length: 20,
+    default: NotificationDeliveryModeEnum.DELIVER,
+  })
+  deliveryMode!: string;
 
   @Column({ type: 'varchar', length: 1000, nullable: true })
   failureReason!: string | null;
