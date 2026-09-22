@@ -33,6 +33,7 @@ function buildViewModel(): NotificationViewModel {
     body: 'Body',
     sourceService: 'gardenia',
     dedupeKey: 'dedupe-key-1',
+    deliveryMode: 'DELIVER',
     failureReason: null,
     sentAt: null,
     readAt: null,

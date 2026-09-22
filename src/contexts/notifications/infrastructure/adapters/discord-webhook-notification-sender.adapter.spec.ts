@@ -17,6 +17,7 @@ const NOTIFICATION: INotificationPrimitives = {
   body: 'Your plant was watered successfully.',
   sourceService: 'gardenia-api',
   dedupeKey: 'gardenia:plant:1:watered',
+  deliveryMode: 'DELIVER',
   failureReason: null,
   sentAt: null,
   readAt: null,
