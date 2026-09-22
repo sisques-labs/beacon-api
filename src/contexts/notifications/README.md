@@ -13,8 +13,9 @@ retry/backoff, and queryable by id.
 
 - `NotificationAggregate` — fields: `tenantId`, `recipientUserId`, `channel`
   (`DISCORD | EMAIL | PUSH`), `status` (`PENDING | SENT | FAILED | CANCELLED
-  | READ`), `title`, `body`, `sourceService`, `dedupeKey`, plus terminal
-  timestamps (`sentAt`, `readAt`, `cancelledAt`) and `failureReason`.
+  | READ | SKIPPED`), `title`, `body`, `sourceService`, `dedupeKey`,
+  `deliveryMode` (`DELIVER | RECORD_ONLY`), plus terminal timestamps
+  (`sentAt`, `readAt`, `cancelledAt`) and `failureReason`.
 - Status transitions are enforced by `assertTransition()`; an invalid
   transition raises `InvalidNotificationStatusTransitionException`.
 - `NotificationBuilder` constructs the aggregate and its `NotificationViewModel`
@@ -113,6 +114,39 @@ single-sourced in the application layer regardless of entry point (see
   transports, same-transport and cross-transport dedupe replay, invalid-input
   rejection, and D5 channel rejection, all asserted against real Postgres
   rows.
+
+### Delivery mode: producer-controlled opt-out (`RECORD_ONLY`)
+
+Every creation entry point (Kafka, REST, GraphQL) accepts an optional
+`deliveryMode` field using `NotificationDeliveryModeEnum` (`DELIVER |
+RECORD_ONLY`). It is normalized exactly once, in
+`CreateNotificationCommand`'s constructor: absent defaults to `DELIVER`; an
+invalid value (including a URL/destination-shaped string — SSRF constraint
+D3) is rejected at the transport edge (Kafka: log-and-skip like any other
+malformed event; REST/GraphQL: the transport's usual validation-error
+response) and never reaches the command.
+
+- `RECORD_ONLY` ⇒ `CreateNotificationCommandHandler` calls
+  `aggregate.skip()` right after `create()` (one save, one
+  `publishEvents()`), transitioning `PENDING → SKIPPED`. No new command and
+  no extra DB write.
+- Suppression is enforced at three points so no `RECORD_ONLY` notification
+  can reach the sender adapter: the create handler (`skip()` above),
+  `DeliverNotificationOnCreatedHandler` (early-returns before enqueuing —
+  no BullMQ job is ever created), and `DeliverNotificationCommandHandler`
+  (defense in depth for a job enqueued before this change, or manually
+  re-queued).
+- `SKIPPED` is a terminal status like `SENT`/`FAILED`/`CANCELLED` — no
+  method transitions out of it, enforced for free by the existing
+  `assertTransition()` guard.
+- Read side: `deliveryMode` and `SKIPPED` are returned by REST `GET :id`
+  and GraphQL `notificationFindById` exactly like any other field/status
+  value, no special-casing.
+- E2E coverage: `test/notification-ingest.e2e-spec.ts`,
+  `test/notification-delivery.e2e-spec.ts`, `test/notification-create.e2e-spec.ts`,
+  and `test/notification-find-by-id.e2e-spec.ts` all assert `RECORD_ONLY` /
+  `SKIPPED` behavior (and invalid-value rejection) against real
+  Postgres/Redis.
 
 ### Delivery: durable, retrying Discord webhook
 

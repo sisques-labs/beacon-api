@@ -55,24 +55,24 @@ Chain strategy: feature-branch-chain
 
 ## Phase 3: PR #3 — Transport (Slice 2b, base: PR2 branch)
 
-- [ ] 3.1 RED `transport/kafka/dtos/notification-ingest.dto.spec.ts` — absent/valid/invalid `deliveryMode` incl. URL-shaped string (SSRF D3)
-- [ ] 3.2 GREEN `@IsOptional() @IsEnum(NotificationDeliveryModeEnum)` on `notification-ingest.dto.ts`
-- [ ] 3.3 RED extend `transport/kafka/consumers/notification-ingest.consumer.spec.ts` — command carries `deliveryMode`; invalid ⇒ log-and-skip, no command dispatched
-- [ ] 3.4 GREEN thread `dto.deliveryMode` into command in `notification-ingest.consumer.ts`
-- [ ] 3.5 RED `transport/rest/dtos/notification-create-request.dto.spec.ts` — absent/valid/invalid incl. URL-shaped string (SSRF D3)
-- [ ] 3.6 GREEN `@ApiPropertyOptional` + `@IsEnum` on `notification-create-request.dto.ts`
-- [ ] 3.7 RED `transport/graphql/dtos/requests/notification-create.request.dto.spec.ts` — absent/valid/invalid incl. URL-shaped string (SSRF D3); no GraphQL `defaultValue`
-- [ ] 3.8 GREEN `@Field(nullable: true)` + `@IsEnum` on GraphQL create request DTO
-- [ ] 3.9 RED extend `notification.controller.spec.ts` + `notification-mutations.resolver.spec.ts` — command carries `deliveryMode`; invalid ⇒ no dispatch
-- [ ] 3.10 GREEN thread `deliveryMode` in `notification.controller.ts` + `notification-mutations.resolver.ts`
-- [ ] 3.11 RED extend `transport/rest/mappers/notification.mapper.spec.ts` + `notification-registered-enums.graphql.spec.ts` — REST `toResponseDtoFromViewModel` builds `deliveryMode`; mode enum registered
-- [ ] 3.12 GREEN add `deliveryMode` to `notification-response.dto.ts` (REST) and **delete its self-mapping constructor** (fixes architecture hard rule 8); add `toResponseDtoFromViewModel()` to `transport/rest/mappers/notification.mapper.ts`; wire controller `findById` through it
-- [ ] 3.13 GREEN `deliveryMode` field on GraphQL `notification.response.dto.ts` + mapping in GraphQL `transport/graphql/mappers/notification.mapper.ts`; register `NotificationDeliveryModeEnum` in `notification-registered-enums.graphql.ts`
-- [ ] 3.14 Extend `test/notification-ingest.e2e-spec.ts` — `RECORD_ONLY` event ⇒ row `deliveryMode=RECORD_ONLY`, `status=SKIPPED`; invalid ⇒ no row
-- [ ] 3.15 Extend `test/notification-delivery.e2e-spec.ts` — `RECORD_ONLY` ⇒ `HttpService.post` never called, queue drains no job, terminal `SKIPPED`
-- [ ] 3.16 Extend `test/notification-create.e2e-spec.ts` — REST 201 / GraphQL success with `deliveryMode`; invalid ⇒ 400 / GraphQL error
-- [ ] 3.17 Extend `test/notification-find-by-id.e2e-spec.ts` — `SKIPPED` + `deliveryMode` returned by REST and GraphQL, no error
-- [ ] 3.18 Update `src/contexts/notifications/README.md` — document `deliveryMode` capability
+- [x] 3.1 RED `transport/kafka/dtos/notification-ingest.dto.spec.ts` — absent/valid/invalid `deliveryMode` incl. URL-shaped string (SSRF D3)
+- [x] 3.2 GREEN `@IsOptional() @IsEnum(NotificationDeliveryModeEnum)` on `notification-ingest.dto.ts`
+- [x] 3.3 RED extend `transport/kafka/consumers/notification-ingest.consumer.spec.ts` — command carries `deliveryMode`; invalid ⇒ log-and-skip, no command dispatched
+- [x] 3.4 GREEN thread `dto.deliveryMode` into command in `notification-ingest.consumer.ts`
+- [x] 3.5 RED `transport/rest/dtos/notification-create-request.dto.spec.ts` — absent/valid/invalid incl. URL-shaped string (SSRF D3)
+- [x] 3.6 GREEN `@ApiPropertyOptional` + `@IsEnum` on `notification-create-request.dto.ts`
+- [x] 3.7 RED `transport/graphql/dtos/requests/notification-create.request.dto.spec.ts` — absent/valid/invalid incl. URL-shaped string (SSRF D3); no GraphQL `defaultValue`
+- [x] 3.8 GREEN `@Field(nullable: true)` + `@IsEnum` on GraphQL create request DTO
+- [x] 3.9 RED extend `notification.controller.spec.ts` + `notification-mutations.resolver.spec.ts` — command carries `deliveryMode`; invalid ⇒ no dispatch
+- [x] 3.10 GREEN thread `deliveryMode` in `notification.controller.ts` + `notification-mutations.resolver.ts`
+- [x] 3.11 RED extend `transport/rest/mappers/notification.mapper.spec.ts` + `notification-registered-enums.graphql.spec.ts` — REST `toResponseDtoFromViewModel` builds `deliveryMode`; mode enum registered
+- [x] 3.12 GREEN add `deliveryMode` to `notification-response.dto.ts` (REST) and **delete its self-mapping constructor** (fixes architecture hard rule 8); add `toResponseDtoFromViewModel()` to `transport/rest/mappers/notification.mapper.ts`; wire controller `findById` through it
+- [x] 3.13 GREEN `deliveryMode` field on GraphQL `notification.response.dto.ts` + mapping in GraphQL `transport/graphql/mappers/notification.mapper.ts`; register `NotificationDeliveryModeEnum` in `notification-registered-enums.graphql.ts`
+- [x] 3.14 Extend `test/notification-ingest.e2e-spec.ts` — `RECORD_ONLY` event ⇒ row `deliveryMode=RECORD_ONLY`, `status=SKIPPED`; invalid ⇒ no row
+- [x] 3.15 Extend `test/notification-delivery.e2e-spec.ts` — `RECORD_ONLY` ⇒ `HttpService.post` never called, queue drains no job, terminal `SKIPPED`
+- [x] 3.16 Extend `test/notification-create.e2e-spec.ts` — REST 201 / GraphQL success with `deliveryMode`; invalid ⇒ 400 / GraphQL error
+- [x] 3.17 Extend `test/notification-find-by-id.e2e-spec.ts` — `SKIPPED` + `deliveryMode` returned by REST and GraphQL, no error
+- [x] 3.18 Update `src/contexts/notifications/README.md` — document `deliveryMode` capability
 
 ## Phase 4: PR #4 — Criteria Contract Surface (Slice 3a, base: PR3 branch)
 
