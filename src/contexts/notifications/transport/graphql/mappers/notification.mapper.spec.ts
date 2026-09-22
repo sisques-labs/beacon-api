@@ -1,18 +1,22 @@
+import { PaginatedResult } from '@sisques-labs/nestjs-kit';
+
 import { NotificationViewModel } from '@contexts/notifications/domain/view-models/notification.view-model';
 import { NotificationGraphQLMapper } from '@contexts/notifications/transport/graphql/mappers/notification.mapper';
 
-function buildViewModel(): NotificationViewModel {
+function buildViewModel(
+  overrides: Partial<{ status: string; deliveryMode: string }> = {},
+): NotificationViewModel {
   return new NotificationViewModel({
     id: '11111111-1111-4111-8111-111111111111',
     tenantId: '22222222-2222-4222-8222-222222222222',
     recipientUserId: '33333333-3333-4333-8333-333333333333',
     channel: 'DISCORD',
-    status: 'PENDING',
+    status: overrides.status ?? 'PENDING',
     title: 'Title',
     body: 'Body',
     sourceService: 'gardenia',
     dedupeKey: 'dedupe-key-1',
-    deliveryMode: 'DELIVER',
+    deliveryMode: overrides.deliveryMode ?? 'DELIVER',
     failureReason: null,
     sentAt: null,
     readAt: null,
@@ -43,5 +47,25 @@ describe('NotificationGraphQLMapper', () => {
     expect(dto.failureReason).toBeNull();
     expect(dto.createdAt).toBe(viewModel.createdAt);
     expect(dto.updatedAt).toBe(viewModel.updatedAt);
+  });
+
+  it('maps a PaginatedResult to a NotificationPaginatedResponseDto, mapping deliveryMode and SKIPPED per item', () => {
+    const skipped = buildViewModel({
+      status: 'SKIPPED',
+      deliveryMode: 'RECORD_ONLY',
+    });
+    const paginatedResult = new PaginatedResult([skipped], 1, 2, 10);
+
+    const dto =
+      mapper.toPaginatedResponseDtoFromPaginatedResult(paginatedResult);
+
+    expect(dto.items).toHaveLength(1);
+    expect(dto.items[0].status).toBe('SKIPPED');
+    expect(dto.items[0].deliveryMode).toBe('RECORD_ONLY');
+    expect(dto.items[0].dedupeKey).toBe(skipped.dedupeKey);
+    expect(dto.total).toBe(1);
+    expect(dto.page).toBe(2);
+    expect(dto.perPage).toBe(10);
+    expect(dto.totalPages).toBe(paginatedResult.totalPages);
   });
 });

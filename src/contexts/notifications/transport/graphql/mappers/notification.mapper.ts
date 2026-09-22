@@ -1,9 +1,11 @@
 import { Injectable } from '@nestjs/common';
+import { PaginatedResult } from '@sisques-labs/nestjs-kit';
 
 import { NotificationChannelEnum } from '@contexts/notifications/domain/enums/notification-channel.enum';
 import { NotificationDeliveryModeEnum } from '@contexts/notifications/domain/enums/notification-delivery-mode.enum';
 import { NotificationStatusEnum } from '@contexts/notifications/domain/enums/notification-status.enum';
 import { NotificationViewModel } from '@contexts/notifications/domain/view-models/notification.view-model';
+import { NotificationPaginatedResponseDto } from '@contexts/notifications/transport/graphql/dtos/responses/notification-paginated.response.dto';
 import { NotificationResponseDto } from '@contexts/notifications/transport/graphql/dtos/responses/notification.response.dto';
 
 @Injectable()
@@ -29,6 +31,22 @@ export class NotificationGraphQLMapper {
     dto.cancelledAt = viewModel.cancelledAt;
     dto.createdAt = viewModel.createdAt;
     dto.updatedAt = viewModel.updatedAt;
+
+    return dto;
+  }
+
+  toPaginatedResponseDtoFromPaginatedResult(
+    paginatedResult: PaginatedResult<NotificationViewModel>,
+  ): NotificationPaginatedResponseDto {
+    const dto = new NotificationPaginatedResponseDto();
+
+    dto.items = paginatedResult.items.map((viewModel) =>
+      this.toResponseDtoFromViewModel(viewModel),
+    );
+    dto.total = paginatedResult.total;
+    dto.page = paginatedResult.page;
+    dto.perPage = paginatedResult.perPage;
+    dto.totalPages = paginatedResult.totalPages;
 
     return dto;
   }
