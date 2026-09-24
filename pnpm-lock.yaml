@@ -232,8 +232,8 @@ importers:
         specifier: 6.0.3
         version: 6.0.3
       unplugin-swc:
-        specifier: 1.5.11
-        version: 1.5.11(@swc/core@1.16.2)(rolldown@1.2.6)(vite@8.2.2(@types/node@24.13.3)(terser@5.49.0)(yaml@2.9.0))(webpack@5.106.2(@swc/core@1.16.2)(lightningcss@1.33.0)(postcss@8.5.26)(uglify-js@3.19.3))
+        specifier: 1.6.0
+        version: 1.6.0(@swc/core@1.16.2)(rolldown@1.2.6)(vite@8.2.2(@types/node@24.13.3)(terser@5.49.0)(yaml@2.9.0))(webpack@5.106.2(@swc/core@1.16.2)(lightningcss@1.33.0)(postcss@8.5.26)(uglify-js@3.19.3))
       vitest:
         specifier: 4.1.11
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(@vitest/coverage-v8@4.1.11)(vite@8.2.2(@types/node@24.13.3)(terser@5.49.0)(yaml@2.9.0))
@@ -4982,8 +4982,8 @@ packages:
     resolution: {integrity: sha512-pjy2bYhSsufwWlKwPc+l3cN7+wuJlK6uz0YdJEOlQDbl6jo/YlPi4mb8agUkVC8BF7V8NuzeyPNqRksA3hztKQ==}
     engines: {node: '>= 0.8'}
 
-  unplugin-swc@1.5.11:
-    resolution: {integrity: sha512-R7U4GbfrESPnYLn3nXREZrwhKQk3BAmTBoKJ5lmo7btTc/yJpNsDzavBWo+XpQTjDSIogiZEAxC5ig/vfMWxWg==}
+  unplugin-swc@1.6.0:
+    resolution: {integrity: sha512-aOdzxAwJvz1GeQ8vwSNA2N8AreHYBrpwxqnwzxmB7LCdeZiXOBDj0rgjZod+lMxFsJGm8k6lF/1iKF/9wacLbw==}
     peerDependencies:
       '@swc/core': ^1.2.108
 
@@ -6984,7 +6984,7 @@ snapshots:
     dependencies:
       '@types/estree': 1.0.9
       estree-walker: 2.0.2
-      picomatch: 4.0.5
+      picomatch: 4.0.7
 
   '@scarf/scarf@1.4.0': {}
 
@@ -10284,7 +10284,7 @@ snapshots:
 
   unpipe@1.0.0: {}
 
-  unplugin-swc@1.5.11(@swc/core@1.16.2)(rolldown@1.2.6)(vite@8.2.2(@types/node@24.13.3)(terser@5.49.0)(yaml@2.9.0))(webpack@5.106.2(@swc/core@1.16.2)(lightningcss@1.33.0)(postcss@8.5.26)(uglify-js@3.19.3)):
+  unplugin-swc@1.6.0(@swc/core@1.16.2)(rolldown@1.2.6)(vite@8.2.2(@types/node@24.13.3)(terser@5.49.0)(yaml@2.9.0))(webpack@5.106.2(@swc/core@1.16.2)(lightningcss@1.33.0)(postcss@8.5.26)(uglify-js@3.19.3)):
     dependencies:
       '@rollup/pluginutils': 5.4.0
       '@swc/core': 1.16.2
@@ -10304,7 +10304,7 @@ snapshots:
   unplugin@3.3.0(rolldown@1.2.6)(vite@8.2.2(@types/node@24.13.3)(terser@5.49.0)(yaml@2.9.0))(webpack@5.106.2(@swc/core@1.16.2)(lightningcss@1.33.0)(postcss@8.5.26)(uglify-js@3.19.3)):
     dependencies:
       '@jridgewell/remapping': 2.3.5
-      picomatch: 4.0.5
+      picomatch: 4.0.7
       webpack-virtual-modules: 0.6.2
     optionalDependencies:
       rolldown: 1.2.6
@@ -10365,7 +10365,7 @@ snapshots:
   vite@8.2.2(@types/node@24.13.3)(terser@5.49.0)(yaml@2.9.0):
     dependencies:
       lightningcss: 1.33.0
-      picomatch: 4.0.5
+      picomatch: 4.0.7
       postcss: 8.5.26
       rolldown: 1.2.6
       tinyglobby: 0.2.17
