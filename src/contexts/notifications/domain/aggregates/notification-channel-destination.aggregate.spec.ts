@@ -125,4 +125,31 @@ describe('NotificationChannelDestinationAggregate', () => {
       expect(destination.envelope.value).toBe(ENVELOPE_V1);
     });
   });
+
+  describe('toPrimitives()', () => {
+    it('returns the persistence shape including the encrypted envelope', () => {
+      const destination = buildDestination();
+
+      expect(destination.toPrimitives()).toEqual({
+        id: DESTINATION_ID,
+        tenantId: TENANT_ID,
+        channel: NotificationChannelEnum.DISCORD,
+        envelope: ENVELOPE_V1,
+        createdAt: NOW,
+        updatedAt: NOW,
+      });
+    });
+
+    it('reflects the rotated envelope and the touched updatedAt', () => {
+      const destination = buildDestination(ENVELOPE_V1);
+
+      destination.rotate(new EncryptedSecretValueObject(ENVELOPE_V2));
+      const primitives = destination.toPrimitives();
+
+      expect(primitives.envelope).toBe(ENVELOPE_V2);
+      expect(primitives.updatedAt.getTime()).toBeGreaterThanOrEqual(
+        NOW.getTime(),
+      );
+    });
+  });
 });
