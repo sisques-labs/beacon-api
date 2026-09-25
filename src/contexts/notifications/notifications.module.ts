@@ -12,6 +12,7 @@ import { DeliverNotificationCommandHandler } from '@contexts/notifications/appli
 import { DeliverNotificationOnCreatedHandler } from '@contexts/notifications/application/events/deliver-notification-on-created.handler';
 import { NOTIFICATION_DELIVERY_QUEUE_PORT } from '@contexts/notifications/application/ports/notification-delivery-queue.port';
 import { NOTIFICATION_SENDER_PORT } from '@contexts/notifications/application/ports/notification-sender.port';
+import { SECRET_CIPHER_PORT } from '@contexts/notifications/application/ports/secret-cipher.port';
 import { NotificationFindByIdHandler } from '@contexts/notifications/application/queries/notification-find-by-id/notification-find-by-id.handler';
 import { AssertNotificationViewModelExistsService } from '@contexts/notifications/application/services/read/assert-notification-view-model-exists/assert-notification-view-model-exists.service';
 import { AssertNotificationAggregateExistsService } from '@contexts/notifications/application/services/write/assert-notification-aggregate-exists.service';
@@ -20,6 +21,7 @@ import { NOTIFICATION_CHANNEL_DESTINATION_READ_REPOSITORY } from '@contexts/noti
 import { NOTIFICATION_READ_REPOSITORY } from '@contexts/notifications/domain/repositories/read/notification-read.repository';
 import { NOTIFICATION_CHANNEL_DESTINATION_WRITE_REPOSITORY } from '@contexts/notifications/domain/repositories/write/notification-channel-destination-write.repository';
 import { NOTIFICATION_WRITE_REPOSITORY } from '@contexts/notifications/domain/repositories/write/notification-write.repository';
+import { AesGcmSecretCipherAdapter } from '@contexts/notifications/infrastructure/adapters/aes-gcm-secret-cipher.adapter';
 import { BullMqNotificationDeliveryQueueAdapter } from '@contexts/notifications/infrastructure/adapters/bullmq-notification-delivery-queue.adapter';
 import { DiscordWebhookNotificationSenderAdapter } from '@contexts/notifications/infrastructure/adapters/discord-webhook-notification-sender.adapter';
 import { discordConfig } from '@contexts/notifications/infrastructure/config/discord.config';
@@ -79,6 +81,10 @@ const INFRASTRUCTURE_REPOSITORIES = [
   {
     provide: NOTIFICATION_DELIVERY_QUEUE_PORT,
     useClass: BullMqNotificationDeliveryQueueAdapter,
+  },
+  {
+    provide: SECRET_CIPHER_PORT,
+    useClass: AesGcmSecretCipherAdapter,
   },
 ];
 const GRAPHQL_PROVIDERS = [
