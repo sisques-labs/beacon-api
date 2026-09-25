@@ -1,5 +1,7 @@
 import { validateEnv } from '@core/config/env.validation';
 
+const VALID_SECRETS_ENCRYPTION_KEY = Buffer.alloc(32, 9).toString('base64');
+
 function validEnv(
   overrides: Record<string, string | undefined> = {},
 ): Record<string, string> {
@@ -12,6 +14,7 @@ function validEnv(
     DATABASE_PASSWORD: 'secret',
     DATABASE_DATABASE: 'nestjs_template_db',
     REDIS_HOST: 'localhost',
+    SECRETS_ENCRYPTION_KEY: VALID_SECRETS_ENCRYPTION_KEY,
     ...overrides,
   };
 }
@@ -156,6 +159,54 @@ describe('validateEnv', () => {
     expect(() =>
       validateEnv(null as unknown as Record<string, unknown>),
     ).toThrow(/\(root\)/);
+  });
+
+  it('rejects a missing SECRETS_ENCRYPTION_KEY', () => {
+    const env = validEnv({ SECRETS_ENCRYPTION_KEY: '' });
+
+    expect(() => validateEnv(env)).toThrow(
+      /Environment validation failed:[\s\S]*SECRETS_ENCRYPTION_KEY/,
+    );
+  });
+
+  it('rejects a SECRETS_ENCRYPTION_KEY that does not decode to 32 bytes', () => {
+    const env = validEnv({
+      SECRETS_ENCRYPTION_KEY: Buffer.alloc(16, 1).toString('base64'),
+    });
+
+    expect(() => validateEnv(env)).toThrow(
+      /Environment validation failed:[\s\S]*SECRETS_ENCRYPTION_KEY/,
+    );
+  });
+
+  it('accepts a SECRETS_ENCRYPTION_KEY that decodes to exactly 32 bytes', () => {
+    expect(() => validateEnv(validEnv())).not.toThrow();
+  });
+
+  it('accepts an unset SECRETS_ENCRYPTION_KEY_VERSION', () => {
+    expect(() => validateEnv(validEnv())).not.toThrow();
+  });
+
+  it('accepts a SECRETS_ENCRYPTION_KEY_VERSION within 1-255', () => {
+    const env = validEnv({ SECRETS_ENCRYPTION_KEY_VERSION: '255' });
+
+    expect(() => validateEnv(env)).not.toThrow();
+  });
+
+  it('rejects a SECRETS_ENCRYPTION_KEY_VERSION below 1', () => {
+    const env = validEnv({ SECRETS_ENCRYPTION_KEY_VERSION: '0' });
+
+    expect(() => validateEnv(env)).toThrow(
+      /Environment validation failed:[\s\S]*SECRETS_ENCRYPTION_KEY_VERSION/,
+    );
+  });
+
+  it('rejects a SECRETS_ENCRYPTION_KEY_VERSION above 255', () => {
+    const env = validEnv({ SECRETS_ENCRYPTION_KEY_VERSION: '256' });
+
+    expect(() => validateEnv(env)).toThrow(
+      /Environment validation failed:[\s\S]*SECRETS_ENCRYPTION_KEY_VERSION/,
+    );
   });
 
   it('accepts a valid OTEL_EXPORTER_OTLP_ENDPOINT', () => {
