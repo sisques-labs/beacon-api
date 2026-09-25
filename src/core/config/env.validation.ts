@@ -51,6 +51,20 @@ const baseEnvSchema = z
     KAFKA_INGEST_TOPIC: z.string().optional(),
     KAFKA_INGEST_GROUP_ID: z.string().optional(),
     DISCORD_WEBHOOK_URL: z.string().trim().url().optional(),
+    SECRETS_ENCRYPTION_KEY: z
+      .string()
+      .trim()
+      .min(1, 'SECRETS_ENCRYPTION_KEY must not be empty')
+      .refine(
+        (value) => Buffer.from(value, 'base64').length === 32,
+        'SECRETS_ENCRYPTION_KEY must be base64-encoded and decode to exactly 32 bytes',
+      ),
+    SECRETS_ENCRYPTION_KEY_VERSION: z.coerce
+      .number()
+      .int()
+      .min(1, 'SECRETS_ENCRYPTION_KEY_VERSION must be between 1 and 255')
+      .max(255, 'SECRETS_ENCRYPTION_KEY_VERSION must be between 1 and 255')
+      .optional(),
     EVENTSTORE_ENABLED: z.enum(['true', 'false']).optional(),
     EVENTSTORE_CONNECTION_STRING: z.string().optional(),
     EVENTSTORE_STREAM_PREFIX: z.string().optional(),
