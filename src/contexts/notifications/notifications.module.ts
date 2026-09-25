@@ -17,13 +17,17 @@ import { AssertNotificationViewModelExistsService } from '@contexts/notification
 import { AssertNotificationAggregateExistsService } from '@contexts/notifications/application/services/write/assert-notification-aggregate-exists.service';
 import { FindNotificationByDedupeKeyService } from '@contexts/notifications/application/services/write/find-notification-by-dedupe-key/find-notification-by-dedupe-key.service';
 import { NOTIFICATION_READ_REPOSITORY } from '@contexts/notifications/domain/repositories/read/notification-read.repository';
+import { NOTIFICATION_CHANNEL_DESTINATION_WRITE_REPOSITORY } from '@contexts/notifications/domain/repositories/write/notification-channel-destination-write.repository';
 import { NOTIFICATION_WRITE_REPOSITORY } from '@contexts/notifications/domain/repositories/write/notification-write.repository';
 import { BullMqNotificationDeliveryQueueAdapter } from '@contexts/notifications/infrastructure/adapters/bullmq-notification-delivery-queue.adapter';
 import { DiscordWebhookNotificationSenderAdapter } from '@contexts/notifications/infrastructure/adapters/discord-webhook-notification-sender.adapter';
 import { discordConfig } from '@contexts/notifications/infrastructure/config/discord.config';
 import { notificationDeliveryQueueConfig } from '@contexts/notifications/infrastructure/config/notification-delivery-queue.config';
+import { NotificationChannelDestinationEntity } from '@contexts/notifications/infrastructure/persistence/typeorm/entities/notification-channel-destination.entity';
 import { NotificationEntity } from '@contexts/notifications/infrastructure/persistence/typeorm/entities/notification.entity';
+import { NotificationChannelDestinationTypeormMapper } from '@contexts/notifications/infrastructure/persistence/typeorm/mappers/notification-channel-destination-typeorm.mapper';
 import { NotificationTypeormMapper } from '@contexts/notifications/infrastructure/persistence/typeorm/mappers/notification-typeorm.mapper';
+import { NotificationChannelDestinationTypeormWriteRepository } from '@contexts/notifications/infrastructure/persistence/typeorm/repositories/notification-channel-destination-typeorm-write.repository';
 import { NotificationTypeormReadRepository } from '@contexts/notifications/infrastructure/persistence/typeorm/repositories/notification-typeorm-read.repository';
 import { NotificationTypeormWriteRepository } from '@contexts/notifications/infrastructure/persistence/typeorm/repositories/notification-typeorm-write.repository';
 import { NotificationGraphQLMapper } from '@contexts/notifications/transport/graphql/mappers/notification.mapper';
@@ -45,7 +49,10 @@ const APPLICATION_SERVICES = [
   AssertNotificationAggregateExistsService,
   FindNotificationByDedupeKeyService,
 ];
-const INFRASTRUCTURE_MAPPERS = [NotificationTypeormMapper];
+const INFRASTRUCTURE_MAPPERS = [
+  NotificationTypeormMapper,
+  NotificationChannelDestinationTypeormMapper,
+];
 const INFRASTRUCTURE_REPOSITORIES = [
   {
     provide: NOTIFICATION_WRITE_REPOSITORY,
@@ -54,6 +61,10 @@ const INFRASTRUCTURE_REPOSITORIES = [
   {
     provide: NOTIFICATION_READ_REPOSITORY,
     useClass: NotificationTypeormReadRepository,
+  },
+  {
+    provide: NOTIFICATION_CHANNEL_DESTINATION_WRITE_REPOSITORY,
+    useClass: NotificationChannelDestinationTypeormWriteRepository,
   },
   {
     provide: NOTIFICATION_SENDER_PORT,
@@ -76,7 +87,10 @@ const QUEUE_PROCESSORS = [NotificationDeliveryProcessor];
 @Module({
   imports: [
     CqrsModule,
-    TypeOrmModule.forFeature([NotificationEntity]),
+    TypeOrmModule.forFeature([
+      NotificationEntity,
+      NotificationChannelDestinationEntity,
+    ]),
     ConfigModule.forFeature(discordConfig),
     ConfigModule.forFeature(notificationDeliveryQueueConfig),
     BullModule.registerQueue({ name: notificationDeliveryQueueConfig().name }),
