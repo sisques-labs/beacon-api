@@ -159,6 +159,60 @@ describe('ClientAggregate', () => {
 
       expect(() => client.revoke()).toThrow(ClientRevokedException);
     });
+
+    it('never includes the api key secret hash in the revoked event payload', () => {
+      const client = buildClient();
+
+      client.revoke();
+
+      const event = client.getUncommittedEvents()[0] as ClientRevokedEvent;
+      expect(Object.keys(event.data)).toEqual([
+        'id',
+        'tenantId',
+        'name',
+        'apiKeyId',
+        'createdAt',
+        'updatedAt',
+      ]);
+      expect(JSON.stringify(event.data)).not.toContain(HASH_1);
+    });
+  });
+
+  describe('toPrimitives()', () => {
+    it('returns the persistence shape including the api key secret hash', () => {
+      const client = buildClient();
+
+      expect(client.toPrimitives()).toEqual({
+        id: CLIENT_ID,
+        tenantId: TENANT_ID,
+        name: NAME,
+        apiKeyId: API_KEY_ID_1,
+        apiKeySecretHash: HASH_1,
+        apiKeyRotatedAt: null,
+        revokedAt: null,
+        createdAt: NOW,
+        updatedAt: NOW,
+      });
+    });
+
+    it('reflects the rotated apiKeyId/hash and the touched updatedAt', () => {
+      const client = buildClient();
+
+      client.rotateApiKey(
+        new ApiKeyIdValueObject(API_KEY_ID_2),
+        new ApiKeySecretHashValueObject(HASH_2),
+      );
+      const primitives = client.toPrimitives();
+
+      expect(primitives.apiKeyId).toBe(API_KEY_ID_2);
+      expect(primitives.apiKeySecretHash).toBe(HASH_2);
+      expect(primitives.apiKeyRotatedAt?.getTime()).toBeGreaterThanOrEqual(
+        NOW.getTime(),
+      );
+      expect(primitives.updatedAt.getTime()).toBeGreaterThanOrEqual(
+        NOW.getTime(),
+      );
+    });
   });
 
   describe('getters', () => {
