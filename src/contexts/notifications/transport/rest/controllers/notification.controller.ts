@@ -25,13 +25,13 @@ import { NotificationResponseDto } from '@contexts/notifications/transport/rest/
 import { NotificationRestMapper } from '@contexts/notifications/transport/rest/mappers/notification.mapper';
 
 /**
- * Phase B (design.md D21/D22): class-level `@UseGuards(ClientApiKeyGuard)`
- * covers both methods below — `findById` becomes guarded as a side effect
- * of the class-level placement; its own tenant scoping is added in Phase 29
- * (D25), not here. The creation tenant is always the authenticated client's
- * own tenant, resolved through `@CurrentClient()`; the deprecated body
- * `tenantId` (D22) is accepted for compatibility but NEVER read to
- * determine the creation tenant.
+ * Phase B (design.md D21/D22/D25): class-level `@UseGuards(ClientApiKeyGuard)`
+ * covers both methods below. `findById` is tenant-scoped to the
+ * authenticated client — a notification belonging to another tenant is
+ * returned as 404, never 403 (D25). The creation tenant is always the
+ * authenticated client's own tenant, resolved through `@CurrentClient()`;
+ * the deprecated body `tenantId` (D22) is accepted for compatibility but
+ * NEVER read to determine the creation tenant.
  */
 @ApiTags('notifications')
 @ApiHeader({
@@ -53,12 +53,22 @@ export class NotificationController {
   @Get(':id')
   @ApiOperation({ summary: 'Get a notification by id' })
   @ApiResponse({ status: 200, type: NotificationResponseDto })
-  async findById(@Param('id') id: string): Promise<NotificationResponseDto> {
-    this.logger.log(`GET /notifications/${id}`);
+  async findById(
+    @Param('id') id: string,
+    @CurrentClient() authenticatedClient: IAuthenticatedClient,
+  ): Promise<NotificationResponseDto> {
+    this.logger.log(
+      `GET /notifications/${id} tenant=${authenticatedClient.tenantId}`,
+    );
     const viewModel = await this.queryBus.execute<
       NotificationFindByIdQuery,
       NotificationViewModel
-    >(new NotificationFindByIdQuery({ id }));
+    >(
+      new NotificationFindByIdQuery({
+        id,
+        tenantId: authenticatedClient.tenantId,
+      }),
+    );
     return new NotificationResponseDto(viewModel);
   }
 
