@@ -5,7 +5,11 @@ import { DataSource } from 'typeorm';
  * list when a new @Entity is added so integration/E2E specs stay isolated
  * between tests.
  */
-export const TRUNCATE_TABLES: readonly string[] = ['notifications'];
+export const TRUNCATE_TABLES: readonly string[] = [
+  'notifications',
+  'notification_channel_destinations',
+  'clients',
+];
 
 /**
  * Truncates all application tables and restarts identity sequences.
