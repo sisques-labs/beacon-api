@@ -10,19 +10,14 @@ type AnyClass = new (...args: never[]) => unknown;
  * Phase A allowlist (design.md D13/D21): the transport classes this scan
  * MUST NOT flag yet, because Phase B — not this change — wires
  * `ClientApiKeyGuard` into them:
- * - `NotificationController` — creation (task 28.2) and `findById` (task
- *   29.3) both move behind the guard in Phase B.
- * - `NotificationMutationsResolver` — creation moves behind the guard in
- *   task 28.2.
  * - `NotificationQueriesResolver` — `findById` moves behind the guard in
  *   task 29.3.
- * Remove each entry from this list in the same task that adds
- * `@UseGuards(ClientApiKeyGuard)` to it — tasks 28.2 and 29.3 already carry
- * a reminder note. This list MUST be empty once Phase B finishes.
+ * `NotificationController` and `NotificationMutationsResolver` were removed
+ * from this list in task 28.2, once `@UseGuards(ClientApiKeyGuard)` was
+ * added to both. This list MUST be empty once Phase B finishes (task
+ * 29.3's reminder note).
  */
 export const NOTIFICATIONS_PHASE_A_GUARD_ALLOWLIST = [
-  'NotificationController',
-  'NotificationMutationsResolver',
   'NotificationQueriesResolver',
 ] as const;
 

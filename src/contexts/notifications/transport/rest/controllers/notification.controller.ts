@@ -6,27 +6,41 @@ import {
   Logger,
   Param,
   Post,
-  Req,
+  UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Request } from 'express';
+import { ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import { CreateNotificationResult } from '@contexts/notifications/application/commands/create-notification/create-notification-result.interface';
 import { CreateNotificationCommand } from '@contexts/notifications/application/commands/create-notification/create-notification.command';
+import { IAuthenticatedClient } from '@contexts/notifications/application/ports/authenticated-client.interface';
 import { NotificationFindByIdQuery } from '@contexts/notifications/application/queries/notification-find-by-id/notification-find-by-id.query';
 import { NotificationViewModel } from '@contexts/notifications/domain/view-models/notification.view-model';
-import {
-  readApiKeyHeaderValue,
-  warnIfApiKeyMissing,
-} from '@contexts/notifications/infrastructure/logging/api-key-readiness-warning';
+import { CurrentClient } from '@contexts/notifications/infrastructure/decorators/current-client.decorator';
+import { ClientApiKeyGuard } from '@contexts/notifications/infrastructure/guards/client-api-key.guard';
+import { warnIfTenantIdMismatch } from '@contexts/notifications/infrastructure/logging/tenant-id-mismatch-warning';
 import { NotificationCreateRequestDto } from '@contexts/notifications/transport/rest/dtos/notification-create-request.dto';
 import { NotificationCreateResponseDto } from '@contexts/notifications/transport/rest/dtos/notification-create-response.dto';
 import { NotificationResponseDto } from '@contexts/notifications/transport/rest/dtos/notification-response.dto';
 import { NotificationRestMapper } from '@contexts/notifications/transport/rest/mappers/notification.mapper';
 
+/**
+ * Phase B (design.md D21/D22): class-level `@UseGuards(ClientApiKeyGuard)`
+ * covers both methods below — `findById` becomes guarded as a side effect
+ * of the class-level placement; its own tenant scoping is added in Phase 29
+ * (D25), not here. The creation tenant is always the authenticated client's
+ * own tenant, resolved through `@CurrentClient()`; the deprecated body
+ * `tenantId` (D22) is accepted for compatibility but NEVER read to
+ * determine the creation tenant.
+ */
 @ApiTags('notifications')
+@ApiHeader({
+  name: 'x-api-key',
+  description: "The requesting client's API key.",
+  required: true,
+})
 @Controller('notifications')
+@UseGuards(ClientApiKeyGuard)
 export class NotificationController {
   private readonly logger = new Logger(NotificationController.name);
 
@@ -39,15 +53,8 @@ export class NotificationController {
   @Get(':id')
   @ApiOperation({ summary: 'Get a notification by id' })
   @ApiResponse({ status: 200, type: NotificationResponseDto })
-  async findById(
-    @Param('id') id: string,
-    @Req() request: Request,
-  ): Promise<NotificationResponseDto> {
+  async findById(@Param('id') id: string): Promise<NotificationResponseDto> {
     this.logger.log(`GET /notifications/${id}`);
-    // Phase A readiness warning (design.md D13/27.1) — this endpoint stays
-    // unguarded until Phase B, so there is no authenticated tenantId to
-    // report here yet.
-    warnIfApiKeyMissing(this.logger, readApiKeyHeaderValue(request.headers));
     const viewModel = await this.queryBus.execute<
       NotificationFindByIdQuery,
       NotificationViewModel
@@ -55,30 +62,28 @@ export class NotificationController {
     return new NotificationResponseDto(viewModel);
   }
 
-  // D7: deliberately unauthenticated — no @UseGuards(JwtAuthGuard) here.
-  // Recorded, deferred tradeoff; see design.md decision D7.
   @Post()
   @HttpCode(201)
   @ApiOperation({ summary: 'Create a notification' })
   @ApiResponse({ status: 201, type: NotificationCreateResponseDto })
   async create(
     @Body() dto: NotificationCreateRequestDto,
-    @Req() request: Request,
+    @CurrentClient() authenticatedClient: IAuthenticatedClient,
   ): Promise<NotificationCreateResponseDto> {
-    this.logger.log('POST /notifications');
-    // Phase A readiness warning (design.md D13/27.1) — behavior is
-    // unchanged, and tenantId still comes from the body (D22 in Phase B).
-    warnIfApiKeyMissing(
+    this.logger.log(
+      `POST /notifications tenant=${authenticatedClient.tenantId}`,
+    );
+    warnIfTenantIdMismatch(
       this.logger,
-      readApiKeyHeaderValue(request.headers),
       dto.tenantId,
+      authenticatedClient.tenantId,
     );
     const result = await this.commandBus.execute<
       CreateNotificationCommand,
       CreateNotificationResult
     >(
       new CreateNotificationCommand({
-        tenantId: dto.tenantId,
+        tenantId: authenticatedClient.tenantId,
         recipientUserId: dto.recipientUserId,
         channel: dto.channel,
         title: dto.title,
