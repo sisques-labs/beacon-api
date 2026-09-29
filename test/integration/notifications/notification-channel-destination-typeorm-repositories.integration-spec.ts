@@ -1,9 +1,15 @@
 import { getRepositoryToken } from '@nestjs/typeorm';
+import {
+  Criteria,
+  FilterOperator,
+  SortDirection,
+} from '@sisques-labs/nestjs-kit';
 import { randomUUID } from 'crypto';
 import { QueryFailedError, Repository } from 'typeorm';
 
 import { NotificationChannelDestinationBuilder } from '@contexts/notifications/domain/builders/notification-channel-destination.builder';
 import { NotificationChannelEnum } from '@contexts/notifications/domain/enums/notification-channel.enum';
+import { UnsupportedCriteriaFieldException } from '@contexts/notifications/domain/exceptions/unsupported-criteria-field.exception';
 import {
   INotificationChannelDestinationReadRepository,
   NOTIFICATION_CHANNEL_DESTINATION_READ_REPOSITORY,
@@ -92,7 +98,7 @@ describe('NotificationChannelDestination TypeORM repositories (integration)', ()
     expect(row?.encryptedAddress).not.toContain('https://');
   });
 
-  it('findByTenantAndChannel returns the aggregate for the same (tenantId, channel)', async () => {
+  it('write findByCriteria (tenantId + channel) returns the aggregate with its envelope', async () => {
     const tenantId = randomUUID();
     const aggregate = buildAggregate({
       tenantId,
@@ -100,23 +106,96 @@ describe('NotificationChannelDestination TypeORM repositories (integration)', ()
     });
 
     await writeRepository.save(aggregate);
-    const found = await writeRepository.findByTenantAndChannel(
-      tenantId,
-      NotificationChannelEnum.DISCORD,
+    const result = await writeRepository.findByCriteria(
+      new Criteria([
+        { field: 'tenantId', operator: FilterOperator.EQUALS, value: tenantId },
+        {
+          field: 'channel',
+          operator: FilterOperator.EQUALS,
+          value: NotificationChannelEnum.DISCORD,
+        },
+      ]),
     );
 
-    expect(found).not.toBeNull();
-    expect(found?.id.value).toBe(aggregate.id.value);
+    expect(result.total).toBe(1);
+    expect(result.items[0].id.value).toBe(aggregate.id.value);
+    expect(result.items[0].envelope.value).toBe(ENVELOPE);
   });
 
-  it('findByTenantAndChannel returns null when no destination matches', async () => {
-    const found = await writeRepository.findByTenantAndChannel(
-      randomUUID(),
-      NotificationChannelEnum.DISCORD,
+  it('write findByCriteria returns an empty page when nothing matches', async () => {
+    const result = await writeRepository.findByCriteria(
+      new Criteria([
+        {
+          field: 'tenantId',
+          operator: FilterOperator.EQUALS,
+          value: randomUUID(),
+        },
+      ]),
     );
 
-    expect(found).toBeNull();
+    expect(result.items).toEqual([]);
+    expect(result.total).toBe(0);
   });
+
+  it('read findByCriteria filters, sorts and paginates metadata-only view models', async () => {
+    const tenantId = randomUUID();
+    await writeRepository.save(
+      buildAggregate({ tenantId, channel: NotificationChannelEnum.DISCORD }),
+    );
+    await writeRepository.save(
+      buildAggregate({ tenantId, channel: NotificationChannelEnum.EMAIL }),
+    );
+    await writeRepository.save(buildAggregate({}));
+
+    const result = await readRepository.findByCriteria(
+      new Criteria(
+        [
+          {
+            field: 'tenantId',
+            operator: FilterOperator.EQUALS,
+            value: tenantId,
+          },
+        ],
+        [{ field: 'channel', direction: SortDirection.DESC }],
+        { page: 1, perPage: 1 },
+      ),
+    );
+
+    expect(result.total).toBe(2);
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].channel).toBe(NotificationChannelEnum.EMAIL);
+    expect(result.items[0]).not.toHaveProperty('encryptedAddress');
+  });
+
+  it.each([
+    [
+      'filter',
+      new Criteria([
+        {
+          field: 'encryptedAddress',
+          operator: FilterOperator.LIKE,
+          value: 'v1',
+        },
+      ]),
+    ],
+    [
+      'sort',
+      new Criteria(
+        [],
+        [{ field: 'encryptedAddress', direction: SortDirection.ASC }],
+      ),
+    ],
+  ])(
+    'rejects %s on encryptedAddress in both repositories',
+    async (_usage, criteria) => {
+      await expect(
+        readRepository.findByCriteria(criteria),
+      ).rejects.toBeInstanceOf(UnsupportedCriteriaFieldException);
+      await expect(
+        writeRepository.findByCriteria(criteria),
+      ).rejects.toBeInstanceOf(UnsupportedCriteriaFieldException);
+    },
+  );
 
   it('enforces the (tenantId, channel) unique index — a second insert is rejected (D12)', async () => {
     const tenantId = randomUUID();

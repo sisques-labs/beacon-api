@@ -6,9 +6,10 @@ export const NOTIFICATION_CHANNEL_DESTINATION_READ_REPOSITORY = Symbol(
   'NOTIFICATION_CHANNEL_DESTINATION_READ_REPOSITORY',
 );
 
-export interface INotificationChannelDestinationReadRepository extends IBaseReadRepository<NotificationChannelDestinationViewModel> {
-  findByTenantAndChannel(
-    tenantId: string,
-    channel: string,
-  ): Promise<NotificationChannelDestinationViewModel | null>;
-}
+/**
+ * Lookups go through the two generic entry points inherited from the base
+ * contract: `findById` and `findByCriteria` (a `(tenantId, channel)` lookup is
+ * an equality criteria on those two fields).
+ */
+export type INotificationChannelDestinationReadRepository =
+  IBaseReadRepository<NotificationChannelDestinationViewModel>;
