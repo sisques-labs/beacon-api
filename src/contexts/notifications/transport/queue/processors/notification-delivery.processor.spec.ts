@@ -1,9 +1,11 @@
 import { CommandBus } from '@nestjs/cqrs';
-import { Job } from 'bullmq';
+import { Job, UnrecoverableError } from 'bullmq';
 import { Mocked, vi } from 'vitest';
 
 import { DeliverNotificationCommand } from '@contexts/notifications/application/commands/deliver-notification/deliver-notification.command';
 import { INotificationDeliveryJobData } from '@contexts/notifications/application/ports/notification-delivery-job-data.interface';
+import { NotificationDestinationNotConfiguredException } from '@contexts/notifications/domain/exceptions/notification-destination-not-configured.exception';
+import { NotificationDestinationUnreadableException } from '@contexts/notifications/domain/exceptions/notification-destination-unreadable.exception';
 import { NotificationDeliveryProcessor } from '@contexts/notifications/transport/queue/processors/notification-delivery.processor';
 
 const NOTIFICATION_ID = '11111111-1111-4111-8111-111111111111';
@@ -55,5 +57,31 @@ describe('NotificationDeliveryProcessor', () => {
     commandBus.execute.mockRejectedValue(error);
 
     await expect(processor.process(buildJob(0, 5))).rejects.toBe(error);
+  });
+
+  describe('D2 — non-retryable delivery failures', () => {
+    it('converts a NotificationDestinationNotConfiguredException into an UnrecoverableError', async () => {
+      const error = new NotificationDestinationNotConfiguredException();
+      commandBus.execute.mockRejectedValue(error);
+
+      await expect(processor.process(buildJob(0, 5))).rejects.toBeInstanceOf(
+        UnrecoverableError,
+      );
+      await expect(processor.process(buildJob(0, 5))).rejects.toThrow(
+        error.message,
+      );
+    });
+
+    it('converts a NotificationDestinationUnreadableException into an UnrecoverableError', async () => {
+      const error = new NotificationDestinationUnreadableException();
+      commandBus.execute.mockRejectedValue(error);
+
+      await expect(processor.process(buildJob(0, 5))).rejects.toBeInstanceOf(
+        UnrecoverableError,
+      );
+      await expect(processor.process(buildJob(0, 5))).rejects.toThrow(
+        error.message,
+      );
+    });
   });
 });
