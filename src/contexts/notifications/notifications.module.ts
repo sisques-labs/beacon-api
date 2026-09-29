@@ -18,6 +18,7 @@ import { NotificationChannelDestinationFindByCriteriaHandler } from '@contexts/n
 import { NotificationChannelDestinationFindByIdHandler } from '@contexts/notifications/application/queries/notification-channel-destination-find-by-id/notification-channel-destination-find-by-id.handler';
 import { NotificationFindByIdHandler } from '@contexts/notifications/application/queries/notification-find-by-id/notification-find-by-id.handler';
 import { AssertNotificationViewModelExistsService } from '@contexts/notifications/application/services/read/assert-notification-view-model-exists/assert-notification-view-model-exists.service';
+import { EncryptChannelDestinationSecretService } from '@contexts/notifications/application/services/write/encrypt-channel-destination-secret/encrypt-channel-destination-secret.service';
 import { AssertNotificationAggregateExistsService } from '@contexts/notifications/application/services/write/assert-notification-aggregate-exists.service';
 import { FindNotificationByDedupeKeyService } from '@contexts/notifications/application/services/write/find-notification-by-dedupe-key/find-notification-by-dedupe-key.service';
 import { NOTIFICATION_CHANNEL_DESTINATION_READ_REPOSITORY } from '@contexts/notifications/domain/repositories/read/notification-channel-destination-read.repository';
@@ -61,6 +62,7 @@ const APPLICATION_SERVICES = [
   AssertNotificationViewModelExistsService,
   AssertNotificationAggregateExistsService,
   FindNotificationByDedupeKeyService,
+  EncryptChannelDestinationSecretService,
 ];
 const DOMAIN_BUILDERS = [NotificationChannelDestinationBuilder];
 const INFRASTRUCTURE_MAPPERS = [
