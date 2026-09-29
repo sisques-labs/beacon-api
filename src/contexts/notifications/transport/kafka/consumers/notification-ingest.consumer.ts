@@ -11,6 +11,10 @@ import { kafkaIngestConfig } from '@core/config/kafka-ingest.config';
 
 import { CreateNotificationCommand } from '@contexts/notifications/application/commands/create-notification/create-notification.command';
 import { NotificationChannelEnum } from '@contexts/notifications/domain/enums/notification-channel.enum';
+import {
+  readApiKeyHeaderValue,
+  warnIfApiKeyMissing,
+} from '@contexts/notifications/infrastructure/logging/api-key-readiness-warning';
 import { NotificationIngestDto } from '@contexts/notifications/transport/kafka/dtos/notification-ingest.dto';
 
 /**
@@ -55,6 +59,15 @@ export class NotificationIngestConsumer {
       );
       return;
     }
+
+    // Phase A readiness warning (design.md D13/27.1) — this consumer stays
+    // unguarded until Phase B, and behavior is unchanged: tenantId still
+    // comes from the event body (D22 in Phase B).
+    warnIfApiKeyMissing(
+      this.logger,
+      readApiKeyHeaderValue(message.headers),
+      dto.tenantId,
+    );
 
     if (dto.deliverableAddress) {
       this.logger.warn(
