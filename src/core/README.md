@@ -48,6 +48,27 @@ dependency:
   Redis fails the whole readiness check with a 503, distinguishable from a
   database failure by the `redis` key in the response body.
 
+## Crypto (`src/core/crypto/`)
+
+`AesGcmCipherService` (design.md D4/D5/D6) is a context-agnostic AES-256-GCM
+encryption service, wired `@Global` via `CryptoModule` so any bounded context
+can inject it. It produces/consumes a self-describing envelope
+`v{keyVersion}:{iv}:{authTag}:{ciphertext}` (all parts base64url), meant for
+storage in one `text` column. `encrypt()` uses a fresh 12-byte IV every call.
+Callers MUST pass the same AAD to `decrypt()` used at `encrypt()` time — a
+mismatch, or any tampering of the envelope, fails the GCM auth tag check and
+throws.
+
+Core has no notion of "context": a bounded context that needs encryption
+defines its own `ISecretCipherPort` (`application/ports/`) and a thin adapter
+in `infrastructure/adapters/` that delegates to `AesGcmCipherService` — it
+never injects the core service directly outside that boundary.
+
+| Var | Required | Default |
+|---|---|---|
+| `SECRETS_ENCRYPTION_KEY` | **Yes** | — (base64, must decode to exactly 32 bytes) |
+| `SECRETS_ENCRYPTION_KEY_VERSION` | No | `1` (integer, 1-255) |
+
 ## Other cross-cutting modules
 
 - `src/core/observability/` — OpenTelemetry traces/metrics; every
