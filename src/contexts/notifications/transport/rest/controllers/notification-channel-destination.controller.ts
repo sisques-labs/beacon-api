@@ -10,11 +10,16 @@ import {
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Criteria,
+  FilterOperator,
+  PaginatedResult,
+} from '@sisques-labs/nestjs-kit';
 
 import { RegisterNotificationChannelDestinationResult } from '@contexts/notifications/application/commands/register-notification-channel-destination/register-notification-channel-destination-result.interface';
 import { RegisterNotificationChannelDestinationCommand } from '@contexts/notifications/application/commands/register-notification-channel-destination/register-notification-channel-destination.command';
 import { IAuthenticatedClient } from '@contexts/notifications/application/ports/authenticated-client.interface';
-import { NotificationChannelDestinationFindByTenantAndChannelQuery } from '@contexts/notifications/application/queries/notification-channel-destination-find-by-tenant-and-channel/notification-channel-destination-find-by-tenant-and-channel.query';
+import { NotificationChannelDestinationFindByCriteriaQuery } from '@contexts/notifications/application/queries/notification-channel-destination-find-by-criteria/notification-channel-destination-find-by-criteria.query';
 import { NotificationChannelDestinationViewModel } from '@contexts/notifications/domain/view-models/notification-channel-destination.view-model';
 import { CurrentClient } from '@contexts/notifications/infrastructure/decorators/current-client.decorator';
 import { ClientApiKeyGuard } from '@contexts/notifications/infrastructure/guards/client-api-key.guard';
@@ -93,17 +98,29 @@ export class NotificationChannelDestinationController {
     this.logger.log(
       `GET /notification-destinations/${channel} tenant=${authenticatedClient.tenantId}`,
     );
-    const viewModel = await this.queryBus.execute<
-      NotificationChannelDestinationFindByTenantAndChannelQuery,
-      NotificationChannelDestinationViewModel | null
+    // The unique index (tenantId, channel) guarantees at most one row, so the
+    // default first page is enough.
+    const result = await this.queryBus.execute<
+      NotificationChannelDestinationFindByCriteriaQuery,
+      PaginatedResult<NotificationChannelDestinationViewModel>
     >(
-      new NotificationChannelDestinationFindByTenantAndChannelQuery({
-        tenantId: authenticatedClient.tenantId,
-        channel,
+      new NotificationChannelDestinationFindByCriteriaQuery({
+        criteria: new Criteria([
+          {
+            field: 'tenantId',
+            operator: FilterOperator.EQUALS,
+            value: authenticatedClient.tenantId,
+          },
+          {
+            field: 'channel',
+            operator: FilterOperator.EQUALS,
+            value: channel,
+          },
+        ]),
       }),
     );
     return this.notificationChannelDestinationRestMapper.toResponseDtoFromViewModel(
-      viewModel,
+      result.items[0] ?? null,
     );
   }
 }
