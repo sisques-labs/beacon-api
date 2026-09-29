@@ -1,4 +1,9 @@
 import { EventBus } from '@nestjs/cqrs';
+import {
+  Criteria,
+  FilterOperator,
+  PaginatedResult,
+} from '@sisques-labs/nestjs-kit';
 import { Mocked, vi } from 'vitest';
 
 import { RegisterNotificationChannelDestinationCommand } from '@contexts/notifications/application/commands/register-notification-channel-destination/register-notification-channel-destination.command';
@@ -17,6 +22,10 @@ const VALID_INPUT = {
 const EXPECTED_AAD = `notifications:channel-destination:${VALID_INPUT.tenantId}:${NotificationChannelEnum.DISCORD}`;
 const ENVELOPE = 'v1:iv:tag:ct';
 
+function pageOf(items: unknown[]): PaginatedResult<never> {
+  return new PaginatedResult(items as never[], items.length, 1, 10);
+}
+
 function buildAlreadyExists(): DestinationAlreadyExistsException {
   return new DestinationAlreadyExistsException(
     VALID_INPUT.tenantId,
@@ -33,13 +42,12 @@ describe('RegisterNotificationChannelDestinationCommandHandler', () => {
   beforeEach(() => {
     writeRepository = {
       findById: vi.fn(),
-      findByTenantAndChannel: vi.fn(),
       findByCriteria: vi.fn(),
       save: vi.fn(),
       delete: vi.fn(),
     } as unknown as Mocked<INotificationChannelDestinationWriteRepository>;
     secretCipherPort = {
-      encrypt: vi.fn().mockReturnValue(ENVELOPE),
+      encrypt: vi.fn().mockResolvedValue(ENVELOPE),
       decrypt: vi.fn(),
     };
     eventBus = { publishAll: vi.fn() } as unknown as Mocked<EventBus>;
@@ -51,7 +59,7 @@ describe('RegisterNotificationChannelDestinationCommandHandler', () => {
   });
 
   it('encrypts with AAD notifications:channel-destination:{tenantId}:{channel} (D5)', async () => {
-    writeRepository.findByTenantAndChannel.mockResolvedValue(null);
+    writeRepository.findByCriteria.mockResolvedValue(pageOf([]));
     writeRepository.save.mockImplementation((aggregate) =>
       Promise.resolve(aggregate),
     );
@@ -66,8 +74,35 @@ describe('RegisterNotificationChannelDestinationCommandHandler', () => {
     );
   });
 
+  it('looks the destination up by tenantId AND channel equality on the default first page', async () => {
+    writeRepository.findByCriteria.mockResolvedValue(pageOf([]));
+    writeRepository.save.mockImplementation((aggregate) =>
+      Promise.resolve(aggregate),
+    );
+
+    await handler.execute(
+      new RegisterNotificationChannelDestinationCommand(VALID_INPUT),
+    );
+
+    const criteria: Criteria = writeRepository.findByCriteria.mock.calls[0][0];
+    expect(criteria.filters).toEqual([
+      {
+        field: 'tenantId',
+        operator: FilterOperator.EQUALS,
+        value: VALID_INPUT.tenantId,
+      },
+      {
+        field: 'channel',
+        operator: FilterOperator.EQUALS,
+        value: NotificationChannelEnum.DISCORD,
+      },
+    ]);
+    expect(criteria.sorts).toEqual([]);
+    expect(criteria.pagination).toEqual({ page: 1, perPage: 10 });
+  });
+
   it('creates a new destination and emits register() when none exists', async () => {
-    writeRepository.findByTenantAndChannel.mockResolvedValue(null);
+    writeRepository.findByCriteria.mockResolvedValue(pageOf([]));
     writeRepository.save.mockImplementation((aggregate) =>
       Promise.resolve(aggregate),
     );
@@ -86,17 +121,21 @@ describe('RegisterNotificationChannelDestinationCommandHandler', () => {
 
   it('rotates the existing destination instead of creating a second row', async () => {
     const now = new Date('2026-01-01T00:00:00.000Z');
-    writeRepository.findByTenantAndChannel.mockResolvedValue({
-      id: { value: '99999999-9999-4999-8999-999999999999' },
-      tenantId: { value: VALID_INPUT.tenantId },
-      channel: { value: NotificationChannelEnum.DISCORD },
-      envelope: { value: 'old-envelope' },
-      createdAt: { value: now },
-      updatedAt: { value: now },
-      rotate: vi.fn(),
-      getUncommittedEvents: vi.fn().mockReturnValue([]),
-      commit: vi.fn(),
-    } as never);
+    writeRepository.findByCriteria.mockResolvedValue(
+      pageOf([
+        {
+          id: { value: '99999999-9999-4999-8999-999999999999' },
+          tenantId: { value: VALID_INPUT.tenantId },
+          channel: { value: NotificationChannelEnum.DISCORD },
+          envelope: { value: 'old-envelope' },
+          createdAt: { value: now },
+          updatedAt: { value: now },
+          rotate: vi.fn(),
+          getUncommittedEvents: vi.fn().mockReturnValue([]),
+          commit: vi.fn(),
+        },
+      ]),
+    );
     writeRepository.save.mockImplementation((aggregate) =>
       Promise.resolve(aggregate),
     );
@@ -105,8 +144,9 @@ describe('RegisterNotificationChannelDestinationCommandHandler', () => {
       new RegisterNotificationChannelDestinationCommand(VALID_INPUT),
     );
 
-    const existing =
-      await writeRepository.findByTenantAndChannel.mock.results[0].value;
+    const existing = (
+      await writeRepository.findByCriteria.mock.results[0].value
+    ).items[0];
     expect(existing.rotate).toHaveBeenCalledTimes(1);
     expect(writeRepository.save).toHaveBeenCalledTimes(1);
     expect(result.id).toBe('99999999-9999-4999-8999-999999999999');
@@ -125,9 +165,9 @@ describe('RegisterNotificationChannelDestinationCommandHandler', () => {
       getUncommittedEvents: vi.fn().mockReturnValue([]),
       commit: vi.fn(),
     };
-    writeRepository.findByTenantAndChannel
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(rotatedAggregate as never);
+    writeRepository.findByCriteria
+      .mockResolvedValueOnce(pageOf([]))
+      .mockResolvedValueOnce(pageOf([rotatedAggregate]));
     writeRepository.save
       .mockRejectedValueOnce(buildAlreadyExists())
       .mockImplementationOnce((aggregate) => Promise.resolve(aggregate));
@@ -136,7 +176,7 @@ describe('RegisterNotificationChannelDestinationCommandHandler', () => {
       new RegisterNotificationChannelDestinationCommand(VALID_INPUT),
     );
 
-    expect(writeRepository.findByTenantAndChannel).toHaveBeenCalledTimes(2);
+    expect(writeRepository.findByCriteria).toHaveBeenCalledTimes(2);
     expect(writeRepository.save).toHaveBeenCalledTimes(2);
     expect(rotatedAggregate.rotate).toHaveBeenCalledTimes(1);
     expect(result.id).toBe('99999999-9999-4999-8999-999999999999');
@@ -144,7 +184,7 @@ describe('RegisterNotificationChannelDestinationCommandHandler', () => {
 
   it('does not retry a second time when the retry save also throws DestinationAlreadyExistsException', async () => {
     const alreadyExists = buildAlreadyExists();
-    writeRepository.findByTenantAndChannel.mockResolvedValue(null);
+    writeRepository.findByCriteria.mockResolvedValue(pageOf([]));
     writeRepository.save.mockRejectedValue(alreadyExists);
 
     await expect(
@@ -156,7 +196,7 @@ describe('RegisterNotificationChannelDestinationCommandHandler', () => {
   });
 
   it('rethrows an unexpected save error unchanged, without a retry', async () => {
-    writeRepository.findByTenantAndChannel.mockResolvedValue(null);
+    writeRepository.findByCriteria.mockResolvedValue(pageOf([]));
     const unexpected = new Error('boom');
     writeRepository.save.mockRejectedValue(unexpected);
 
@@ -165,7 +205,7 @@ describe('RegisterNotificationChannelDestinationCommandHandler', () => {
         new RegisterNotificationChannelDestinationCommand(VALID_INPUT),
       ),
     ).rejects.toBe(unexpected);
-    expect(writeRepository.findByTenantAndChannel).toHaveBeenCalledTimes(1);
+    expect(writeRepository.findByCriteria).toHaveBeenCalledTimes(1);
   });
 
   it('never reaches encrypt() when the command constructor already rejected the input', () => {
