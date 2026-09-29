@@ -42,8 +42,11 @@ import { NotificationChannelDestinationTypeormReadRepository } from '@contexts/n
 import { NotificationChannelDestinationTypeormWriteRepository } from '@contexts/notifications/infrastructure/persistence/typeorm/repositories/notification-channel-destination-typeorm-write.repository';
 import { NotificationTypeormReadRepository } from '@contexts/notifications/infrastructure/persistence/typeorm/repositories/notification-typeorm-read.repository';
 import { NotificationTypeormWriteRepository } from '@contexts/notifications/infrastructure/persistence/typeorm/repositories/notification-typeorm-write.repository';
+import { NotificationChannelDestinationGraphQLMapper } from '@contexts/notifications/transport/graphql/mappers/notification-channel-destination.mapper';
 import { NotificationGraphQLMapper } from '@contexts/notifications/transport/graphql/mappers/notification.mapper';
+import { NotificationChannelDestinationRegisterResolver } from '@contexts/notifications/transport/graphql/resolvers/mutations/notification-channel-destination-register.resolver';
 import { NotificationMutationsResolver } from '@contexts/notifications/transport/graphql/resolvers/mutations/notification-mutations.resolver';
+import { NotificationChannelDestinationFindByChannelResolver } from '@contexts/notifications/transport/graphql/resolvers/queries/notification-channel-destination-find-by-channel.resolver';
 import { NotificationQueriesResolver } from '@contexts/notifications/transport/graphql/resolvers/queries/notification-queries.resolver';
 import { NotificationIngestConsumer } from '@contexts/notifications/transport/kafka/consumers/notification-ingest.consumer';
 import { NotificationDeliveryProcessor } from '@contexts/notifications/transport/queue/processors/notification-delivery.processor';
@@ -113,6 +116,9 @@ const GRAPHQL_PROVIDERS = [
   NotificationQueriesResolver,
   NotificationMutationsResolver,
   NotificationGraphQLMapper,
+  NotificationChannelDestinationRegisterResolver,
+  NotificationChannelDestinationFindByChannelResolver,
+  NotificationChannelDestinationGraphQLMapper,
 ];
 const REST_PROVIDERS = [
   NotificationRestMapper,
