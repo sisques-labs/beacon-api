@@ -1,10 +1,15 @@
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
+import {
+  Criteria,
+  FilterOperator,
+  PaginatedResult,
+} from '@sisques-labs/nestjs-kit';
 import { Mocked, vi } from 'vitest';
 
 import { IAuthenticatedClient } from '@contexts/notifications/application/ports/authenticated-client.interface';
 import { RegisterNotificationChannelDestinationCommand } from '@contexts/notifications/application/commands/register-notification-channel-destination/register-notification-channel-destination.command';
-import { NotificationChannelDestinationFindByTenantAndChannelQuery } from '@contexts/notifications/application/queries/notification-channel-destination-find-by-tenant-and-channel/notification-channel-destination-find-by-tenant-and-channel.query';
+import { NotificationChannelDestinationFindByCriteriaQuery } from '@contexts/notifications/application/queries/notification-channel-destination-find-by-criteria/notification-channel-destination-find-by-criteria.query';
 import { NotificationChannelDestinationViewModel } from '@contexts/notifications/domain/view-models/notification-channel-destination.view-model';
 import { NotificationChannelDestinationRegisterRequestDto } from '@contexts/notifications/transport/rest/dtos/notification-channel-destination-register-request.dto';
 import { NotificationChannelDestinationRegisterResponseDto } from '@contexts/notifications/transport/rest/dtos/notification-channel-destination-register-response.dto';
@@ -24,6 +29,10 @@ function buildRegisterRequestDto(): NotificationChannelDestinationRegisterReques
   const dto = new NotificationChannelDestinationRegisterRequestDto();
   dto.webhookUrl = SECRET_WEBHOOK_URL;
   return dto;
+}
+
+function emptyPage(): PaginatedResult<NotificationChannelDestinationViewModel> {
+  return new PaginatedResult([], 0, 1, 10);
 }
 
 function buildViewModel(): NotificationChannelDestinationViewModel {
@@ -127,8 +136,8 @@ describe('NotificationChannelDestinationController', () => {
   });
 
   describe('findMetadata', () => {
-    it('dispatches NotificationChannelDestinationFindByTenantAndChannelQuery for the authenticated tenant only', async () => {
-      queryBus.execute.mockResolvedValue(null);
+    it('dispatches NotificationChannelDestinationFindByCriteriaQuery for the authenticated tenant only', async () => {
+      queryBus.execute.mockResolvedValue(emptyPage());
       mapper.toResponseDtoFromViewModel.mockReturnValue(
         new NotificationChannelDestinationResponseDto(),
       );
@@ -137,9 +146,19 @@ describe('NotificationChannelDestinationController', () => {
 
       expect(queryBus.execute).toHaveBeenCalledTimes(1);
       expect(queryBus.execute).toHaveBeenCalledWith(
-        new NotificationChannelDestinationFindByTenantAndChannelQuery({
-          tenantId: AUTHENTICATED_CLIENT.tenantId,
-          channel: 'DISCORD',
+        new NotificationChannelDestinationFindByCriteriaQuery({
+          criteria: new Criteria([
+            {
+              field: 'tenantId',
+              operator: FilterOperator.EQUALS,
+              value: AUTHENTICATED_CLIENT.tenantId,
+            },
+            {
+              field: 'channel',
+              operator: FilterOperator.EQUALS,
+              value: 'DISCORD',
+            },
+          ]),
         }),
       );
     });
@@ -148,7 +167,9 @@ describe('NotificationChannelDestinationController', () => {
       const viewModel = buildViewModel();
       const responseDto = new NotificationChannelDestinationResponseDto();
       responseDto.configured = true;
-      queryBus.execute.mockResolvedValue(viewModel);
+      queryBus.execute.mockResolvedValue(
+        new PaginatedResult([viewModel], 1, 1, 10),
+      );
       mapper.toResponseDtoFromViewModel.mockReturnValue(responseDto);
 
       const result = await controller.findMetadata(
@@ -160,8 +181,8 @@ describe('NotificationChannelDestinationController', () => {
       expect(result).toBe(responseDto);
     });
 
-    it('maps a null view model to an unconfigured response DTO via the mapper', async () => {
-      queryBus.execute.mockResolvedValue(null);
+    it('maps an empty page to an unconfigured response DTO via the mapper', async () => {
+      queryBus.execute.mockResolvedValue(emptyPage());
       const responseDto = new NotificationChannelDestinationResponseDto();
       responseDto.configured = false;
       mapper.toResponseDtoFromViewModel.mockReturnValue(responseDto);
