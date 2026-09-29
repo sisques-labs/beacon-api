@@ -16,6 +16,7 @@ import { NotificationFindByIdHandler } from '@contexts/notifications/application
 import { AssertNotificationViewModelExistsService } from '@contexts/notifications/application/services/read/assert-notification-view-model-exists/assert-notification-view-model-exists.service';
 import { AssertNotificationAggregateExistsService } from '@contexts/notifications/application/services/write/assert-notification-aggregate-exists.service';
 import { FindNotificationByDedupeKeyService } from '@contexts/notifications/application/services/write/find-notification-by-dedupe-key/find-notification-by-dedupe-key.service';
+import { NOTIFICATION_CHANNEL_DESTINATION_READ_REPOSITORY } from '@contexts/notifications/domain/repositories/read/notification-channel-destination-read.repository';
 import { NOTIFICATION_READ_REPOSITORY } from '@contexts/notifications/domain/repositories/read/notification-read.repository';
 import { NOTIFICATION_CHANNEL_DESTINATION_WRITE_REPOSITORY } from '@contexts/notifications/domain/repositories/write/notification-channel-destination-write.repository';
 import { NOTIFICATION_WRITE_REPOSITORY } from '@contexts/notifications/domain/repositories/write/notification-write.repository';
@@ -27,6 +28,7 @@ import { NotificationChannelDestinationEntity } from '@contexts/notifications/in
 import { NotificationEntity } from '@contexts/notifications/infrastructure/persistence/typeorm/entities/notification.entity';
 import { NotificationChannelDestinationTypeormMapper } from '@contexts/notifications/infrastructure/persistence/typeorm/mappers/notification-channel-destination-typeorm.mapper';
 import { NotificationTypeormMapper } from '@contexts/notifications/infrastructure/persistence/typeorm/mappers/notification-typeorm.mapper';
+import { NotificationChannelDestinationTypeormReadRepository } from '@contexts/notifications/infrastructure/persistence/typeorm/repositories/notification-channel-destination-typeorm-read.repository';
 import { NotificationChannelDestinationTypeormWriteRepository } from '@contexts/notifications/infrastructure/persistence/typeorm/repositories/notification-channel-destination-typeorm-write.repository';
 import { NotificationTypeormReadRepository } from '@contexts/notifications/infrastructure/persistence/typeorm/repositories/notification-typeorm-read.repository';
 import { NotificationTypeormWriteRepository } from '@contexts/notifications/infrastructure/persistence/typeorm/repositories/notification-typeorm-write.repository';
@@ -65,6 +67,10 @@ const INFRASTRUCTURE_REPOSITORIES = [
   {
     provide: NOTIFICATION_CHANNEL_DESTINATION_WRITE_REPOSITORY,
     useClass: NotificationChannelDestinationTypeormWriteRepository,
+  },
+  {
+    provide: NOTIFICATION_CHANNEL_DESTINATION_READ_REPOSITORY,
+    useClass: NotificationChannelDestinationTypeormReadRepository,
   },
   {
     provide: NOTIFICATION_SENDER_PORT,
