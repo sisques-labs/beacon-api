@@ -11,6 +11,7 @@ import { CreateNotificationCommandHandler } from '@contexts/notifications/applic
 import { DeliverNotificationCommandHandler } from '@contexts/notifications/application/commands/deliver-notification/deliver-notification.handler';
 import { RegisterNotificationChannelDestinationCommandHandler } from '@contexts/notifications/application/commands/register-notification-channel-destination/register-notification-channel-destination.handler';
 import { DeliverNotificationOnCreatedHandler } from '@contexts/notifications/application/events/deliver-notification-on-created.handler';
+import { CLIENT_AUTHENTICATION_PORT } from '@contexts/notifications/application/ports/client-authentication.port';
 import { NOTIFICATION_DELIVERY_QUEUE_PORT } from '@contexts/notifications/application/ports/notification-delivery-queue.port';
 import { NOTIFICATION_SENDER_PORT } from '@contexts/notifications/application/ports/notification-sender.port';
 import { SECRET_CIPHER_PORT } from '@contexts/notifications/application/ports/secret-cipher.port';
@@ -27,6 +28,7 @@ import { NOTIFICATION_WRITE_REPOSITORY } from '@contexts/notifications/domain/re
 import { AesGcmSecretCipherAdapter } from '@contexts/notifications/infrastructure/adapters/aes-gcm-secret-cipher.adapter';
 import { BullMqNotificationDeliveryQueueAdapter } from '@contexts/notifications/infrastructure/adapters/bullmq-notification-delivery-queue.adapter';
 import { DiscordWebhookNotificationSenderAdapter } from '@contexts/notifications/infrastructure/adapters/discord-webhook-notification-sender.adapter';
+import { QueryBusClientAuthenticationAdapter } from '@contexts/notifications/infrastructure/adapters/query-bus-client-authentication.adapter';
 import { discordConfig } from '@contexts/notifications/infrastructure/config/discord.config';
 import { notificationDeliveryQueueConfig } from '@contexts/notifications/infrastructure/config/notification-delivery-queue.config';
 import { NotificationChannelDestinationEntity } from '@contexts/notifications/infrastructure/persistence/typeorm/entities/notification-channel-destination.entity';
@@ -93,6 +95,10 @@ const INFRASTRUCTURE_REPOSITORIES = [
   {
     provide: SECRET_CIPHER_PORT,
     useClass: AesGcmSecretCipherAdapter,
+  },
+  {
+    provide: CLIENT_AUTHENTICATION_PORT,
+    useClass: QueryBusClientAuthenticationAdapter,
   },
 ];
 const GRAPHQL_PROVIDERS = [
