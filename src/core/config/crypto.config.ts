@@ -1,15 +1,16 @@
 import { registerAs } from '@nestjs/config';
 
+import { parseCryptoEnv } from '@core/config/crypto-env.parser';
 import { ICryptoConfig } from '@core/config/interfaces/crypto-config.interface';
 
 /**
- * AES-256-GCM secrets encryption key (design.md D4). `SECRETS_ENCRYPTION_KEY`
- * is required and validated by `env.validation.ts` to decode to exactly 32
- * bytes before this factory ever runs. `SECRETS_ENCRYPTION_KEY_VERSION` is
- * optional, defaulting to `1` — a future key rotation bumps it and the
- * envelope's version prefix records which key encrypted each row.
+ * AES-256-GCM secrets encryption keyring (design.md D4). The current key
+ * (`SECRETS_ENCRYPTION_KEY` + optional `SECRETS_ENCRYPTION_KEY_VERSION`,
+ * default `1`) encrypts new data; retired keys are supplied as
+ * `SECRETS_ENCRYPTION_KEY_<n>` so envelopes written under an older version
+ * remain decryptable after a rotation. Parsing and strict validation live in
+ * `crypto-env.parser.ts`, shared with `env.validation.ts`.
  */
-export const cryptoConfig = registerAs('crypto', (): ICryptoConfig => ({
-  key: Buffer.from(process.env.SECRETS_ENCRYPTION_KEY ?? '', 'base64'),
-  keyVersion: parseInt(process.env.SECRETS_ENCRYPTION_KEY_VERSION ?? '1', 10),
-}));
+export const cryptoConfig = registerAs('crypto', (): ICryptoConfig =>
+  parseCryptoEnv(process.env),
+);

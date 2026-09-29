@@ -13,6 +13,7 @@ function buildConfigService(
   const config: ICryptoConfig = {
     key: Buffer.alloc(32, 7),
     keyVersion: 1,
+    previousKeys: new Map(),
     ...overrides,
   };
 
@@ -124,5 +125,78 @@ describe('AesGcmCipherService', () => {
     );
 
     expect(() => service.encrypt(PLAINTEXT, AAD)).toThrow();
+  });
+
+  describe('key rotation', () => {
+    const KEY_V1 = Buffer.alloc(32, 1);
+    const KEY_V2 = Buffer.alloc(32, 2);
+
+    it('decrypts a v1 envelope after the current version becomes v2', () => {
+      const v1Service = new AesGcmCipherService(
+        buildConfigService({ key: KEY_V1, keyVersion: 1 }),
+      );
+      const v1Envelope = v1Service.encrypt(PLAINTEXT, AAD);
+
+      const v2Service = new AesGcmCipherService(
+        buildConfigService({
+          key: KEY_V2,
+          keyVersion: 2,
+          previousKeys: new Map([[1, KEY_V1]]),
+        }),
+      );
+
+      expect(v2Service.decrypt(v1Envelope, AAD)).toBe(PLAINTEXT);
+    });
+
+    it('encrypts with the current version after rotation', () => {
+      const v2Service = new AesGcmCipherService(
+        buildConfigService({
+          key: KEY_V2,
+          keyVersion: 2,
+          previousKeys: new Map([[1, KEY_V1]]),
+        }),
+      );
+
+      const envelope = v2Service.encrypt(PLAINTEXT, AAD);
+
+      expect(envelope.startsWith('v2:')).toBe(true);
+      expect(v2Service.decrypt(envelope, AAD)).toBe(PLAINTEXT);
+    });
+
+    it('throws for a version that is neither current nor in the keyring', () => {
+      const v1Service = new AesGcmCipherService(
+        buildConfigService({ key: KEY_V1, keyVersion: 1 }),
+      );
+      const v1Envelope = v1Service.encrypt(PLAINTEXT, AAD);
+
+      const v3Service = new AesGcmCipherService(
+        buildConfigService({
+          key: Buffer.alloc(32, 3),
+          keyVersion: 3,
+          previousKeys: new Map([[2, KEY_V2]]),
+        }),
+      );
+
+      expect(() => v3Service.decrypt(v1Envelope, AAD)).toThrow(
+        /unknown.*key version/i,
+      );
+    });
+
+    it('fails the auth tag check when the keyring holds the wrong key for a version', () => {
+      const v1Service = new AesGcmCipherService(
+        buildConfigService({ key: KEY_V1, keyVersion: 1 }),
+      );
+      const v1Envelope = v1Service.encrypt(PLAINTEXT, AAD);
+
+      const misconfigured = new AesGcmCipherService(
+        buildConfigService({
+          key: KEY_V2,
+          keyVersion: 2,
+          previousKeys: new Map([[1, Buffer.alloc(32, 9)]]),
+        }),
+      );
+
+      expect(() => misconfigured.decrypt(v1Envelope, AAD)).toThrow();
+    });
   });
 });

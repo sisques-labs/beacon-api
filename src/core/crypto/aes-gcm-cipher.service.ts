@@ -15,7 +15,8 @@ const ENVELOPE_PART_COUNT = 4;
  * Produces and consumes a self-describing envelope
  * `v{keyVersion}:{iv}:{authTag}:{ciphertext}`, all parts base64url-encoded,
  * meant to be stored as a single `text` column. Every `encrypt()` call uses a
- * fresh 12-byte IV. Callers MUST pass the same AAD to `decrypt()` that they
+ * fresh 12-byte IV and the current key; `decrypt()` picks the key from the
+ * envelope's version prefix, so retired keys in the keyring stay decryptable. Callers MUST pass the same AAD to `decrypt()` that they
  * passed to `encrypt()` — a mismatch (or any tampering of the envelope) fails
  * the GCM auth tag check and throws, never returning a partial/garbled value.
  *
@@ -28,11 +29,16 @@ const ENVELOPE_PART_COUNT = 4;
 export class AesGcmCipherService {
   private readonly key: Buffer;
   private readonly keyVersion: number;
+  private readonly keyring: ReadonlyMap<number, Buffer>;
 
   constructor(configService: ConfigService) {
     const config = configService.getOrThrow<ICryptoConfig>('crypto');
     this.key = config.key;
     this.keyVersion = config.keyVersion;
+    this.keyring = new Map([
+      ...config.previousKeys,
+      [config.keyVersion, config.key],
+    ]);
   }
 
   encrypt(plaintext: string, aad: string): string {
@@ -64,7 +70,9 @@ export class AesGcmCipherService {
     const [versionPart, ivPart, authTagPart, ciphertextPart] = parts;
     const version = this.parseVersion(versionPart);
 
-    if (version !== this.keyVersion) {
+    const key = this.keyring.get(version);
+
+    if (!key) {
       throw new Error(`Unknown encryption key version: ${versionPart}`);
     }
 
@@ -72,7 +80,7 @@ export class AesGcmCipherService {
     const authTag = Buffer.from(authTagPart, 'base64url');
     const ciphertext = Buffer.from(ciphertextPart, 'base64url');
 
-    const decipher = createDecipheriv(ALGORITHM, this.key, iv);
+    const decipher = createDecipheriv(ALGORITHM, key, iv);
     decipher.setAuthTag(authTag);
     decipher.setAAD(Buffer.from(aad, 'utf8'));
 

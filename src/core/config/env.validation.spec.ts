@@ -224,4 +224,42 @@ describe('validateEnv', () => {
       /Environment validation failed:[\s\S]*OTEL_EXPORTER_OTLP_ENDPOINT/,
     );
   });
+
+  it('rejects an empty SECRETS_ENCRYPTION_KEY_VERSION', () => {
+    const env = validEnv({ SECRETS_ENCRYPTION_KEY_VERSION: '' });
+
+    expect(() => validateEnv(env)).toThrow(
+      /Environment validation failed:[\s\S]*SECRETS_ENCRYPTION_KEY_VERSION/,
+    );
+  });
+
+  it('rejects a SECRETS_ENCRYPTION_KEY with a typo character', () => {
+    const env = validEnv({
+      SECRETS_ENCRYPTION_KEY: `${VALID_SECRETS_ENCRYPTION_KEY.slice(0, 5)}*${VALID_SECRETS_ENCRYPTION_KEY.slice(6)}`,
+    });
+
+    expect(() => validateEnv(env)).toThrow(
+      /Environment validation failed:[\s\S]*SECRETS_ENCRYPTION_KEY/,
+    );
+  });
+
+  it('accepts a valid previous key SECRETS_ENCRYPTION_KEY_<n>', () => {
+    const env = validEnv({
+      SECRETS_ENCRYPTION_KEY_VERSION: '2',
+      SECRETS_ENCRYPTION_KEY_1: Buffer.alloc(32, 1).toString('base64'),
+    });
+
+    expect(() => validateEnv(env)).not.toThrow();
+  });
+
+  it('rejects a malformed previous key SECRETS_ENCRYPTION_KEY_<n>', () => {
+    const env = validEnv({
+      SECRETS_ENCRYPTION_KEY_VERSION: '2',
+      SECRETS_ENCRYPTION_KEY_1: 'short',
+    });
+
+    expect(() => validateEnv(env)).toThrow(
+      /Environment validation failed:[\s\S]*SECRETS_ENCRYPTION_KEY_1/,
+    );
+  });
 });

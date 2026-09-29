@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { validateProductionCorsOrigins } from '@core/config/cors-origins';
+import { parseCryptoEnv } from '@core/config/crypto-env.parser';
 
 function formatZodIssues(issues: z.ZodIssue[]): string {
   return issues
@@ -51,27 +52,24 @@ const baseEnvSchema = z
     KAFKA_INGEST_TOPIC: z.string().optional(),
     KAFKA_INGEST_GROUP_ID: z.string().optional(),
     DISCORD_WEBHOOK_URL: z.string().trim().url().optional(),
-    SECRETS_ENCRYPTION_KEY: z
-      .string()
-      .trim()
-      .min(1, 'SECRETS_ENCRYPTION_KEY must not be empty')
-      .refine(
-        (value) => Buffer.from(value, 'base64').length === 32,
-        'SECRETS_ENCRYPTION_KEY must be base64-encoded and decode to exactly 32 bytes',
-      ),
-    SECRETS_ENCRYPTION_KEY_VERSION: z.coerce
-      .number()
-      .int()
-      .min(1, 'SECRETS_ENCRYPTION_KEY_VERSION must be between 1 and 255')
-      .max(255, 'SECRETS_ENCRYPTION_KEY_VERSION must be between 1 and 255')
-      .optional(),
     EVENTSTORE_ENABLED: z.enum(['true', 'false']).optional(),
     EVENTSTORE_CONNECTION_STRING: z.string().optional(),
     EVENTSTORE_STREAM_PREFIX: z.string().optional(),
     AUTH_ENABLED: z.enum(['true', 'false']).optional(),
     AUTH_JWT_SECRET: z.string().optional(),
   })
+  .passthrough()
   .superRefine((env, ctx) => {
+    try {
+      parseCryptoEnv(env);
+    } catch (error) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['SECRETS_ENCRYPTION_KEY'],
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+
     if (env.KAFKA_ENABLED === 'true' && !env.KAFKA_BROKERS?.trim()) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
