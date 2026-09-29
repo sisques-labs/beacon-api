@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { validateProductionCorsOrigins } from '@core/config/cors-origins';
+import { parseCryptoEnv } from '@core/config/crypto-env.parser';
 
 function formatZodIssues(issues: z.ZodIssue[]): string {
   return issues
@@ -57,7 +58,18 @@ const baseEnvSchema = z
     AUTH_ENABLED: z.enum(['true', 'false']).optional(),
     AUTH_JWT_SECRET: z.string().optional(),
   })
+  .passthrough()
   .superRefine((env, ctx) => {
+    try {
+      parseCryptoEnv(env);
+    } catch (error) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['SECRETS_ENCRYPTION_KEY'],
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+
     if (env.KAFKA_ENABLED === 'true' && !env.KAFKA_BROKERS?.trim()) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

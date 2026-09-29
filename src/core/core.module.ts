@@ -1,5 +1,6 @@
 import { appConfig } from '@core/config/app.config';
 import { authConfig } from '@core/config/auth.config';
+import { cryptoConfig } from '@core/config/crypto.config';
 import { eventStoreConfig } from '@core/config/event-store.config';
 import { validateEnv } from '@core/config/env.validation';
 import { IRedisConfig } from '@core/config/interfaces/redis-config.interface';
@@ -8,6 +9,7 @@ import { kafkaConfig } from '@core/config/kafka.config';
 import { otelConfig } from '@core/config/otel.config';
 import { postgresConfig } from '@core/config/postgres.config';
 import { redisConfig } from '@core/config/redis.config';
+import { CryptoModule } from '@core/crypto/crypto.module';
 import { AGGREGATE_MODULE_MAP } from '@core/messaging/domain/topics/aggregate-module.map.generated';
 import { HealthModule } from '@core/health/health.module';
 import { ObservabilityModule } from '@core/observability/observability.module';
@@ -47,9 +49,14 @@ const CORE_MODULES = [
       eventStoreConfig,
       authConfig,
       redisConfig,
+      cryptoConfig,
     ],
     cache: true,
   }),
+  // Context-agnostic AES-256-GCM primitives (design.md D6) — `@Global`, so
+  // every bounded context can inject `AesGcmCipherService` behind its own
+  // `ISecretCipherPort` without re-importing this module.
+  CryptoModule,
   TypeOrmModule.forRootAsync({
     inject: [ConfigService],
     useFactory: (config: ConfigService) =>
