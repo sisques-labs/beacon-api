@@ -60,8 +60,9 @@ export async function createIntegrationModule(
       }),
       CqrsModule,
       SharedGraphQLModule,
-      // Global in production via CoreModule; notifications depends on it for
-      // the secret cipher port.
+      // Global in production via CoreModule; registers the Encrypt/DecryptSecret
+      // command handlers that notifications' secret cipher port dispatches to
+      // (CqrsModule above supplies the CommandBus).
       CryptoModule,
       ...options.imports,
     ],

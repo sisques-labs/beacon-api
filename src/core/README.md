@@ -51,8 +51,10 @@ dependency:
 ## Crypto (`src/core/crypto/`)
 
 `AesGcmCipherService` (design.md D4/D5/D6) is a context-agnostic AES-256-GCM
-encryption service, wired `@Global` via `CryptoModule` so any bounded context
-can inject it. It produces/consumes a self-describing envelope
+encryption service, internal to `CryptoModule` (`@Global`). Contexts do not
+inject it: they dispatch `EncryptSecretCommand` / `DecryptSecretCommand`
+(`crypto/application/commands/`, primitives-only, handled by delegating to the
+service) through the `CommandBus`. It produces/consumes a self-describing envelope
 `v{keyVersion}:{iv}:{authTag}:{ciphertext}` (all parts base64url), meant for
 storage in one `text` column. `encrypt()` uses a fresh 12-byte IV every call.
 Callers MUST pass the same AAD to `decrypt()` used at `encrypt()` time — a
@@ -60,9 +62,11 @@ mismatch, or any tampering of the envelope, fails the GCM auth tag check and
 throws.
 
 Core has no notion of "context": a bounded context that needs encryption
-defines its own `ISecretCipherPort` (`application/ports/`) and a thin adapter
-in `infrastructure/adapters/` that delegates to `AesGcmCipherService` — it
-never injects the core service directly outside that boundary.
+defines its own async `ISecretCipherPort` (`application/ports/`) and a thin
+adapter in `infrastructure/adapters/` that injects `CommandBus` and dispatches
+those commands. The command classes are the only `@core/crypto` symbols a
+context may import (shared-kernel contract); never the service or module.
+Handlers and exceptions must not log plaintext, secrets or envelopes.
 
 | Var                              | Required | Default                                                                |
 | -------------------------------- | -------- | ---------------------------------------------------------------------- |
