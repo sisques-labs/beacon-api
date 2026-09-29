@@ -31,7 +31,7 @@ describe('NotificationCreateRequestDto (GraphQL)', () => {
     expect(errors.map((error) => error.property)).toContain('dedupeKey');
   });
 
-  it('fails validation when tenantId is not a UUID', async () => {
+  it('fails validation when tenantId is present but not a UUID', async () => {
     const dto = plainToInstance(NotificationCreateRequestDto, {
       ...VALID_PAYLOAD,
       tenantId: 'not-a-uuid',
@@ -40,6 +40,15 @@ describe('NotificationCreateRequestDto (GraphQL)', () => {
     const errors = await validate(dto);
 
     expect(errors.map((error) => error.property)).toContain('tenantId');
+  });
+
+  it('passes validation when tenantId is omitted entirely (D22: deprecated, optional)', async () => {
+    const { tenantId: _tenantId, ...withoutTenantId } = VALID_PAYLOAD;
+    const dto = plainToInstance(NotificationCreateRequestDto, withoutTenantId);
+
+    const errors = await validate(dto);
+
+    expect(errors).toHaveLength(0);
   });
 
   it('rejects EMAIL — D5 restricts the write path to DISCORD only', async () => {

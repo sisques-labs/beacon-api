@@ -1,12 +1,28 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsIn, IsNotEmpty, IsString, IsUUID } from 'class-validator';
+import {
+  IsEnum,
+  IsIn,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 
 import { NotificationChannelEnum } from '@contexts/notifications/domain/enums/notification-channel.enum';
 
 export class NotificationCreateRequestDto {
-  @ApiProperty()
+  // D22: deprecated for one release, accepted and ignored. The creation
+  // tenant is always the authenticated client's own tenant (see
+  // NotificationController) — this field is NEVER read to determine it.
+  @ApiProperty({
+    required: false,
+    deprecated: true,
+    description:
+      "Deprecated, ignored. The creation tenant is always the authenticated client's own tenant.",
+  })
+  @IsOptional()
   @IsUUID()
-  tenantId!: string;
+  tenantId?: string;
 
   @ApiProperty()
   @IsUUID()
