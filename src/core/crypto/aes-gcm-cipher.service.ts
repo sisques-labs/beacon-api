@@ -7,6 +7,7 @@ import { ICryptoConfig } from '@core/config/interfaces/crypto-config.interface';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH_BYTES = 12;
+const AUTH_TAG_LENGTH_BYTES = 16;
 const ENVELOPE_PART_COUNT = 4;
 
 /**
@@ -43,7 +44,9 @@ export class AesGcmCipherService {
 
   encrypt(plaintext: string, aad: string): string {
     const iv = randomBytes(IV_LENGTH_BYTES);
-    const cipher = createCipheriv(ALGORITHM, this.key, iv);
+    const cipher = createCipheriv(ALGORITHM, this.key, iv, {
+      authTagLength: AUTH_TAG_LENGTH_BYTES,
+    });
     cipher.setAAD(Buffer.from(aad, 'utf8'));
 
     const ciphertext = Buffer.concat([
@@ -80,7 +83,9 @@ export class AesGcmCipherService {
     const authTag = Buffer.from(authTagPart, 'base64url');
     const ciphertext = Buffer.from(ciphertextPart, 'base64url');
 
-    const decipher = createDecipheriv(ALGORITHM, key, iv);
+    const decipher = createDecipheriv(ALGORITHM, key, iv, {
+      authTagLength: AUTH_TAG_LENGTH_BYTES,
+    });
     decipher.setAuthTag(authTag);
     decipher.setAAD(Buffer.from(aad, 'utf8'));
 

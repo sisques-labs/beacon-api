@@ -127,6 +127,28 @@ describe('AesGcmCipherService', () => {
     expect(() => service.encrypt(PLAINTEXT, AAD)).toThrow();
   });
 
+  it('rejects an envelope whose auth tag is truncated to 4 bytes', () => {
+    const service = new AesGcmCipherService(buildConfigService());
+    const envelope = service.encrypt(PLAINTEXT, AAD);
+    const parts = envelope.split(':');
+    const fullTag = Buffer.from(parts[2], 'base64url');
+
+    expect(fullTag).toHaveLength(16);
+
+    parts[2] = fullTag.subarray(0, 4).toString('base64url');
+
+    expect(() => service.decrypt(parts.join(':'), AAD)).toThrow(
+      /authentication tag length/i,
+    );
+  });
+
+  it('emits a 16-byte auth tag', () => {
+    const service = new AesGcmCipherService(buildConfigService());
+    const [, , tag] = service.encrypt(PLAINTEXT, AAD).split(':');
+
+    expect(Buffer.from(tag, 'base64url')).toHaveLength(16);
+  });
+
   describe('key rotation', () => {
     const KEY_V1 = Buffer.alloc(32, 1);
     const KEY_V2 = Buffer.alloc(32, 2);
