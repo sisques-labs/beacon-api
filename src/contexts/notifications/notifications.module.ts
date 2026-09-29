@@ -9,12 +9,14 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { CreateNotificationCommandHandler } from '@contexts/notifications/application/commands/create-notification/create-notification.handler';
 import { DeliverNotificationCommandHandler } from '@contexts/notifications/application/commands/deliver-notification/deliver-notification.handler';
+import { RegisterNotificationChannelDestinationCommandHandler } from '@contexts/notifications/application/commands/register-notification-channel-destination/register-notification-channel-destination.handler';
 import { DeliverNotificationOnCreatedHandler } from '@contexts/notifications/application/events/deliver-notification-on-created.handler';
 import { NOTIFICATION_DELIVERY_QUEUE_PORT } from '@contexts/notifications/application/ports/notification-delivery-queue.port';
 import { NOTIFICATION_SENDER_PORT } from '@contexts/notifications/application/ports/notification-sender.port';
 import { SECRET_CIPHER_PORT } from '@contexts/notifications/application/ports/secret-cipher.port';
 import { NotificationFindByIdHandler } from '@contexts/notifications/application/queries/notification-find-by-id/notification-find-by-id.handler';
 import { AssertNotificationViewModelExistsService } from '@contexts/notifications/application/services/read/assert-notification-view-model-exists/assert-notification-view-model-exists.service';
+import { EncryptChannelDestinationSecretService } from '@contexts/notifications/application/services/write/encrypt-channel-destination-secret/encrypt-channel-destination-secret.service';
 import { AssertNotificationAggregateExistsService } from '@contexts/notifications/application/services/write/assert-notification-aggregate-exists.service';
 import { FindNotificationByDedupeKeyService } from '@contexts/notifications/application/services/write/find-notification-by-dedupe-key/find-notification-by-dedupe-key.service';
 import { NOTIFICATION_CHANNEL_DESTINATION_READ_REPOSITORY } from '@contexts/notifications/domain/repositories/read/notification-channel-destination-read.repository';
@@ -46,6 +48,7 @@ import { NotificationRestMapper } from '@contexts/notifications/transport/rest/m
 const COMMAND_HANDLERS = [
   CreateNotificationCommandHandler,
   DeliverNotificationCommandHandler,
+  RegisterNotificationChannelDestinationCommandHandler,
 ];
 const EVENT_HANDLERS = [DeliverNotificationOnCreatedHandler];
 const QUERY_HANDLERS = [NotificationFindByIdHandler];
@@ -53,6 +56,7 @@ const APPLICATION_SERVICES = [
   AssertNotificationViewModelExistsService,
   AssertNotificationAggregateExistsService,
   FindNotificationByDedupeKeyService,
+  EncryptChannelDestinationSecretService,
 ];
 const DOMAIN_BUILDERS = [NotificationChannelDestinationBuilder];
 const INFRASTRUCTURE_MAPPERS = [
