@@ -1,11 +1,16 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { IBaseService } from '@sisques-labs/nestjs-kit';
+import {
+  Criteria,
+  FilterOperator,
+  IBaseService,
+} from '@sisques-labs/nestjs-kit';
 
 import { INotificationDeliveryDestination } from '@contexts/notifications/application/ports/notification-delivery-destination.interface';
 import {
   ISecretCipherPort,
   SECRET_CIPHER_PORT,
 } from '@contexts/notifications/application/ports/secret-cipher.port';
+import { EncryptChannelDestinationSecretService } from '@contexts/notifications/application/services/write/encrypt-channel-destination-secret/encrypt-channel-destination-secret.service';
 import {
   INotificationChannelDestinationWriteRepository,
   NOTIFICATION_CHANNEL_DESTINATION_WRITE_REPOSITORY,
@@ -45,30 +50,43 @@ export class ResolveNotificationDeliveryDestinationService implements IBaseServi
     private readonly writeRepository: INotificationChannelDestinationWriteRepository,
     @Inject(SECRET_CIPHER_PORT)
     private readonly secretCipherPort: ISecretCipherPort,
+    private readonly encryptChannelDestinationSecretService: EncryptChannelDestinationSecretService,
   ) {}
 
   async execute(
     input: ResolveNotificationDeliveryDestinationInput,
   ): Promise<INotificationDeliveryDestination | undefined> {
-    const existing = await this.writeRepository.findByTenantAndChannel(
-      input.tenantId,
-      input.channel,
+    // (tenantId, channel) is unique, so the default first page is enough.
+    const result = await this.writeRepository.findByCriteria(
+      new Criteria([
+        {
+          field: 'tenantId',
+          operator: FilterOperator.EQUALS,
+          value: input.tenantId,
+        },
+        {
+          field: 'channel',
+          operator: FilterOperator.EQUALS,
+          value: input.channel,
+        },
+      ]),
     );
+    const existing = result.items[0] ?? null;
     if (!existing) {
       return undefined;
     }
 
-    const aad = this.buildAad(input.tenantId, input.channel);
-    const plaintext = this.secretCipherPort.decrypt(
+    const aad =
+      this.encryptChannelDestinationSecretService.buildEncryptionContext(
+        input.tenantId,
+        input.channel,
+      );
+    const plaintext = await this.secretCipherPort.decrypt(
       existing.envelope.value,
       aad,
     );
     const webhookUrl = new DiscordWebhookUrlValueObject(plaintext);
 
     return { url: webhookUrl.value, logLabel: webhookUrl.redacted() };
-  }
-
-  private buildAad(tenantId: string, channel: string): string {
-    return `notifications:channel-destination:${tenantId}:${channel}`;
   }
 }
