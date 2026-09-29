@@ -29,7 +29,6 @@ import { AesGcmSecretCipherAdapter } from '@contexts/notifications/infrastructur
 import { BullMqNotificationDeliveryQueueAdapter } from '@contexts/notifications/infrastructure/adapters/bullmq-notification-delivery-queue.adapter';
 import { DiscordWebhookNotificationSenderAdapter } from '@contexts/notifications/infrastructure/adapters/discord-webhook-notification-sender.adapter';
 import { QueryBusClientAuthenticationAdapter } from '@contexts/notifications/infrastructure/adapters/query-bus-client-authentication.adapter';
-import { discordConfig } from '@contexts/notifications/infrastructure/config/discord.config';
 import { notificationDeliveryQueueConfig } from '@contexts/notifications/infrastructure/config/notification-delivery-queue.config';
 import { NotificationChannelDestinationEntity } from '@contexts/notifications/infrastructure/persistence/typeorm/entities/notification-channel-destination.entity';
 import { NotificationEntity } from '@contexts/notifications/infrastructure/persistence/typeorm/entities/notification.entity';
@@ -128,7 +127,6 @@ const QUEUE_PROCESSORS = [NotificationDeliveryProcessor];
       NotificationEntity,
       NotificationChannelDestinationEntity,
     ]),
-    ConfigModule.forFeature(discordConfig),
     ConfigModule.forFeature(notificationDeliveryQueueConfig),
     BullModule.registerQueue({ name: notificationDeliveryQueueConfig().name }),
     HttpModule,

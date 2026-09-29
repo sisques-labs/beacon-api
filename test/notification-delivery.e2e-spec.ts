@@ -12,6 +12,7 @@ import { vi } from 'vitest';
 import { notificationDeliveryQueueConfig } from '../src/contexts/notifications/infrastructure/config/notification-delivery-queue.config';
 import { RegisterNotificationChannelDestinationCommand } from '../src/contexts/notifications/application/commands/register-notification-channel-destination/register-notification-channel-destination.command';
 import { RegisterNotificationChannelDestinationResult } from '../src/contexts/notifications/application/commands/register-notification-channel-destination/register-notification-channel-destination-result.interface';
+import { DeliverNotificationCommandHandler } from '../src/contexts/notifications/application/commands/deliver-notification/deliver-notification.handler';
 import { NotificationAggregate } from '../src/contexts/notifications/domain/aggregates/notification.aggregate';
 import {
   INotificationWriteRepository,
@@ -317,14 +318,24 @@ describe('Notification Discord delivery (e2e)', () => {
       expect(postSpy).not.toHaveBeenCalled();
     });
 
-    it('fails closed with DESTINATION_UNREADABLE and makes no HTTP call when the stored ciphertext is tampered', async () => {
+    it('fails closed with DESTINATION_UNREADABLE, makes no HTTP call and never logs the tampered ciphertext', async () => {
       const client = await seedClient(ctx.app);
       await seedDestination(ctx, client.tenantId);
+      const TAMPERED_CIPHERTEXT = 'v1:tampered:tampered:tampered';
       await ctx.dataSource.query(
         'UPDATE notification_channel_destinations SET "encryptedAddress" = $1 WHERE "tenantId" = $2',
-        ['v1:tampered:tampered:tampered', client.tenantId],
+        [TAMPERED_CIPHERTEXT, client.tenantId],
       );
       const event = buildValidEvent({ tenantId: client.tenantId });
+      const handler = ctx.app.get(DeliverNotificationCommandHandler);
+      const handlerLogger = handler['logger'] as {
+        log: (...args: unknown[]) => void;
+        warn: (...args: unknown[]) => void;
+        error: (...args: unknown[]) => void;
+      };
+      const logSpy = vi.spyOn(handlerLogger, 'log');
+      const warnSpy = vi.spyOn(handlerLogger, 'warn');
+      const errorSpy = vi.spyOn(handlerLogger, 'error');
 
       await consumer.handleMessage(buildPayload(event, client.apiKey));
       const delivered = await waitForTerminalStatus(
@@ -336,6 +347,17 @@ describe('Notification Discord delivery (e2e)', () => {
       expect(delivered.status.value).toBe('FAILED');
       expect(delivered.failureReason?.value).toBe('DESTINATION_UNREADABLE');
       expect(postSpy).not.toHaveBeenCalled();
+      const allLoggedArgs = [
+        ...logSpy.mock.calls,
+        ...warnSpy.mock.calls,
+        ...errorSpy.mock.calls,
+      ].flat();
+      for (const arg of allLoggedArgs) {
+        expect(String(arg)).not.toContain(TAMPERED_CIPHERTEXT);
+      }
+      logSpy.mockRestore();
+      warnSpy.mockRestore();
+      errorSpy.mockRestore();
     });
   });
 });

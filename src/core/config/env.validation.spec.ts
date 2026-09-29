@@ -139,20 +139,10 @@ describe('validateEnv', () => {
     expect(() => validateEnv(env)).not.toThrow();
   });
 
-  it('accepts a valid DISCORD_WEBHOOK_URL', () => {
-    const env = validEnv({
-      DISCORD_WEBHOOK_URL: 'https://discord.com/api/webhooks/123/abc',
-    });
+  it('ignores a leftover DISCORD_WEBHOOK_URL env var (unknown key, no longer validated)', () => {
+    const env = validEnv({ DISCORD_WEBHOOK_URL: 'not-a-url-at-all' });
 
     expect(() => validateEnv(env)).not.toThrow();
-  });
-
-  it('rejects a non-URL DISCORD_WEBHOOK_URL', () => {
-    const env = validEnv({ DISCORD_WEBHOOK_URL: 'not-a-url' });
-
-    expect(() => validateEnv(env)).toThrow(
-      /Environment validation failed:[\s\S]*DISCORD_WEBHOOK_URL/,
-    );
   });
 
   it('formats a root-level issue without a field path', () => {

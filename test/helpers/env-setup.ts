@@ -44,9 +44,6 @@ process.env.NOTIFICATION_DELIVERY_QUEUE_ATTEMPTS =
 process.env.NOTIFICATION_DELIVERY_QUEUE_BACKOFF_MS =
   process.env.NOTIFICATION_DELIVERY_QUEUE_BACKOFF_MS ?? '10';
 process.env.FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:3001';
-process.env.DISCORD_WEBHOOK_URL =
-  process.env.DISCORD_WEBHOOK_URL ??
-  'https://discord.com/api/webhooks/000000000000000000/test-webhook-token';
 // Test-only key (design.md D4) — base64, decodes to exactly 32 bytes.
 process.env.SECRETS_ENCRYPTION_KEY =
   process.env.SECRETS_ENCRYPTION_KEY ?? Buffer.alloc(32, 42).toString('base64');
