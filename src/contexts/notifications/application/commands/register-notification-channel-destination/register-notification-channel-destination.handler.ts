@@ -1,13 +1,15 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs';
-import { BaseCommandHandler, UuidValueObject } from '@sisques-labs/nestjs-kit';
+import {
+  BaseCommandHandler,
+  Criteria,
+  FilterOperator,
+  UuidValueObject,
+} from '@sisques-labs/nestjs-kit';
 
 import { RegisterNotificationChannelDestinationResult } from '@contexts/notifications/application/commands/register-notification-channel-destination/register-notification-channel-destination-result.interface';
 import { RegisterNotificationChannelDestinationCommand } from '@contexts/notifications/application/commands/register-notification-channel-destination/register-notification-channel-destination.command';
-import {
-  ISecretCipherPort,
-  SECRET_CIPHER_PORT,
-} from '@contexts/notifications/application/ports/secret-cipher.port';
+import { EncryptChannelDestinationSecretService } from '@contexts/notifications/application/services/write/encrypt-channel-destination-secret/encrypt-channel-destination-secret.service';
 import { NotificationChannelDestinationAggregate } from '@contexts/notifications/domain/aggregates/notification-channel-destination.aggregate';
 import { NotificationChannelDestinationBuilder } from '@contexts/notifications/domain/builders/notification-channel-destination.builder';
 import { DestinationAlreadyExistsException } from '@contexts/notifications/domain/exceptions/destination-already-exists.exception';
@@ -18,7 +20,7 @@ import {
 import { EncryptedSecretValueObject } from '@contexts/notifications/domain/value-objects/encrypted-secret/encrypted-secret.value-object';
 
 /**
- * Implements design.md's register/rotate flow: encrypt once with the D5 AAD,
+ * Implements design.md's register/rotate flow: encrypt once (bound to the destination's tenant and channel),
  * then upsert via find-then-save (D12). The write repository translates a
  * unique-constraint violation into `DestinationAlreadyExistsException`, so
  * this handler catches only that domain exception and retries exactly once,
@@ -44,8 +46,8 @@ export class RegisterNotificationChannelDestinationCommandHandler
   constructor(
     @Inject(NOTIFICATION_CHANNEL_DESTINATION_WRITE_REPOSITORY)
     private readonly writeRepository: INotificationChannelDestinationWriteRepository,
-    @Inject(SECRET_CIPHER_PORT)
-    private readonly secretCipherPort: ISecretCipherPort,
+    private readonly encryptChannelDestinationSecretService: EncryptChannelDestinationSecretService,
+    private readonly destinationBuilder: NotificationChannelDestinationBuilder,
     eventBus: EventBus,
   ) {
     super(eventBus);
@@ -54,27 +56,25 @@ export class RegisterNotificationChannelDestinationCommandHandler
   async execute(
     command: RegisterNotificationChannelDestinationCommand,
   ): Promise<RegisterNotificationChannelDestinationResult> {
-    const aad = this.buildAad(command.tenantId.value, command.channel.value);
-    const envelopeValue = this.secretCipherPort.encrypt(
-      command.webhookUrl.value,
-      aad,
-    );
+    const encryptedWebhookUrl =
+      await this.encryptChannelDestinationSecretService.execute({
+        tenantId: command.tenantId.value,
+        channel: command.channel.value,
+        plaintext: command.webhookUrl.value,
+      });
 
-    return this.upsert(command, envelopeValue, false);
+    return this.upsert(command, encryptedWebhookUrl, false);
   }
 
   private async upsert(
     command: RegisterNotificationChannelDestinationCommand,
-    envelopeValue: string,
+    encryptedWebhookUrl: string,
     isRetry: boolean,
   ): Promise<RegisterNotificationChannelDestinationResult> {
-    const existing = await this.writeRepository.findByTenantAndChannel(
-      command.tenantId.value,
-      command.channel.value,
-    );
+    const existing = await this.findExisting(command);
 
     if (existing) {
-      existing.rotate(new EncryptedSecretValueObject(envelopeValue));
+      existing.rotate(new EncryptedSecretValueObject(encryptedWebhookUrl));
       await this.writeRepository.save(existing);
       await this.publishEvents(existing);
       this.logger.log(
@@ -84,11 +84,12 @@ export class RegisterNotificationChannelDestinationCommandHandler
     }
 
     const now = new Date();
-    const aggregate = new NotificationChannelDestinationBuilder()
+    // The builder is a shared mutable singleton: every field is set on each use.
+    const aggregate = this.destinationBuilder
       .withId(UuidValueObject.generate().value)
       .withTenantId(command.tenantId.value)
       .withChannel(command.channel.value)
-      .withEnvelope(envelopeValue)
+      .withEnvelope(encryptedWebhookUrl)
       .withCreatedAt(now)
       .withUpdatedAt(now)
       .build();
@@ -98,7 +99,7 @@ export class RegisterNotificationChannelDestinationCommandHandler
       await this.writeRepository.save(aggregate);
     } catch (error) {
       if (!isRetry && error instanceof DestinationAlreadyExistsException) {
-        return this.upsert(command, envelopeValue, true);
+        return this.upsert(command, encryptedWebhookUrl, true);
       }
       throw error;
     }
@@ -110,7 +111,27 @@ export class RegisterNotificationChannelDestinationCommandHandler
     return { id: aggregate.id.value };
   }
 
-  private buildAad(tenantId: string, channel: string): string {
-    return `notifications:channel-destination:${tenantId}:${channel}`;
+  /**
+   * The unique index `(tenantId, channel)` guarantees at most one row, so the
+   * default first page of `findByCriteria` (page 1, perPage 10) is enough.
+   */
+  private async findExisting(
+    command: RegisterNotificationChannelDestinationCommand,
+  ): Promise<NotificationChannelDestinationAggregate | null> {
+    const result = await this.writeRepository.findByCriteria(
+      new Criteria([
+        {
+          field: 'tenantId',
+          operator: FilterOperator.EQUALS,
+          value: command.tenantId.value,
+        },
+        {
+          field: 'channel',
+          operator: FilterOperator.EQUALS,
+          value: command.channel.value,
+        },
+      ]),
+    );
+    return result.items[0] ?? null;
   }
 }
