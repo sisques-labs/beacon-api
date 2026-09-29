@@ -25,6 +25,7 @@ import { discordConfig } from '@contexts/notifications/infrastructure/config/dis
 import { notificationDeliveryQueueConfig } from '@contexts/notifications/infrastructure/config/notification-delivery-queue.config';
 import { NotificationChannelDestinationEntity } from '@contexts/notifications/infrastructure/persistence/typeorm/entities/notification-channel-destination.entity';
 import { NotificationEntity } from '@contexts/notifications/infrastructure/persistence/typeorm/entities/notification.entity';
+import { NotificationChannelDestinationBuilder } from '@contexts/notifications/domain/builders/notification-channel-destination.builder';
 import { NotificationChannelDestinationTypeormMapper } from '@contexts/notifications/infrastructure/persistence/typeorm/mappers/notification-channel-destination-typeorm.mapper';
 import { NotificationTypeormMapper } from '@contexts/notifications/infrastructure/persistence/typeorm/mappers/notification-typeorm.mapper';
 import { NotificationChannelDestinationTypeormWriteRepository } from '@contexts/notifications/infrastructure/persistence/typeorm/repositories/notification-channel-destination-typeorm-write.repository';
@@ -49,6 +50,7 @@ const APPLICATION_SERVICES = [
   AssertNotificationAggregateExistsService,
   FindNotificationByDedupeKeyService,
 ];
+const DOMAIN_BUILDERS = [NotificationChannelDestinationBuilder];
 const INFRASTRUCTURE_MAPPERS = [
   NotificationTypeormMapper,
   NotificationChannelDestinationTypeormMapper,
@@ -102,6 +104,7 @@ const QUEUE_PROCESSORS = [NotificationDeliveryProcessor];
     ...EVENT_HANDLERS,
     ...QUERY_HANDLERS,
     ...APPLICATION_SERVICES,
+    ...DOMAIN_BUILDERS,
     ...INFRASTRUCTURE_MAPPERS,
     ...INFRASTRUCTURE_REPOSITORIES,
     ...GRAPHQL_PROVIDERS,

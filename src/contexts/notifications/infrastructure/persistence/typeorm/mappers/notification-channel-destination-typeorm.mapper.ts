@@ -11,6 +11,10 @@ export class NotificationChannelDestinationTypeormMapper extends BaseTypeOrmMapp
   NotificationChannelDestinationAggregate,
   NotificationChannelDestinationEntity
 > {
+  constructor(private readonly builder: NotificationChannelDestinationBuilder) {
+    super();
+  }
+
   toAggregate(
     entity: NotificationChannelDestinationEntity,
   ): NotificationChannelDestinationAggregate {
@@ -54,10 +58,14 @@ export class NotificationChannelDestinationTypeormMapper extends BaseTypeOrmMapp
     });
   }
 
+  /**
+   * The builder is an injected singleton and therefore stateful: every field
+   * is assigned on every call so nothing can leak between mappings.
+   */
   private buildFrom(
     entity: NotificationChannelDestinationEntity,
   ): NotificationChannelDestinationBuilder {
-    return new NotificationChannelDestinationBuilder()
+    return this.builder
       .withId(entity.id)
       .withTenantId(entity.tenantId)
       .withChannel(entity.channel)
