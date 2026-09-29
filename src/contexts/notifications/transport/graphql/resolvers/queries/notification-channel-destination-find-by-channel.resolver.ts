@@ -1,8 +1,13 @@
 import { Logger, UseGuards } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
 import { Args, Query, Resolver } from '@nestjs/graphql';
+import {
+  Criteria,
+  FilterOperator,
+  PaginatedResult,
+} from '@sisques-labs/nestjs-kit';
 
-import { NotificationChannelDestinationFindByTenantAndChannelQuery } from '@contexts/notifications/application/queries/notification-channel-destination-find-by-tenant-and-channel/notification-channel-destination-find-by-tenant-and-channel.query';
+import { NotificationChannelDestinationFindByCriteriaQuery } from '@contexts/notifications/application/queries/notification-channel-destination-find-by-criteria/notification-channel-destination-find-by-criteria.query';
 import { IAuthenticatedClient } from '@contexts/notifications/application/ports/authenticated-client.interface';
 import { NotificationChannelDestinationViewModel } from '@contexts/notifications/domain/view-models/notification-channel-destination.view-model';
 import { CurrentClient } from '@contexts/notifications/infrastructure/decorators/current-client.decorator';
@@ -42,18 +47,30 @@ export class NotificationChannelDestinationFindByChannelResolver {
       `GraphQL notificationChannelDestinationFindByChannel tenant=${authenticatedClient.tenantId}`,
     );
 
-    const viewModel = await this.queryBus.execute<
-      NotificationChannelDestinationFindByTenantAndChannelQuery,
-      NotificationChannelDestinationViewModel | null
+    // The unique index (tenantId, channel) guarantees at most one row, so the
+    // default first page is enough.
+    const result = await this.queryBus.execute<
+      NotificationChannelDestinationFindByCriteriaQuery,
+      PaginatedResult<NotificationChannelDestinationViewModel>
     >(
-      new NotificationChannelDestinationFindByTenantAndChannelQuery({
-        tenantId: authenticatedClient.tenantId,
-        channel: input.channel,
+      new NotificationChannelDestinationFindByCriteriaQuery({
+        criteria: new Criteria([
+          {
+            field: 'tenantId',
+            operator: FilterOperator.EQUALS,
+            value: authenticatedClient.tenantId,
+          },
+          {
+            field: 'channel',
+            operator: FilterOperator.EQUALS,
+            value: input.channel,
+          },
+        ]),
       }),
     );
 
     return this.notificationChannelDestinationGraphQLMapper.toResponseDtoFromViewModel(
-      viewModel,
+      result.items[0] ?? null,
     );
   }
 }
