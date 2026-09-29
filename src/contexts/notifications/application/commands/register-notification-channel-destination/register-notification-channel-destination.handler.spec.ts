@@ -1,10 +1,10 @@
 import { EventBus } from '@nestjs/cqrs';
-import { QueryFailedError } from 'typeorm';
 import { Mocked, vi } from 'vitest';
 
 import { RegisterNotificationChannelDestinationCommand } from '@contexts/notifications/application/commands/register-notification-channel-destination/register-notification-channel-destination.command';
 import { RegisterNotificationChannelDestinationCommandHandler } from '@contexts/notifications/application/commands/register-notification-channel-destination/register-notification-channel-destination.handler';
 import { ISecretCipherPort } from '@contexts/notifications/application/ports/secret-cipher.port';
+import { DestinationAlreadyExistsException } from '@contexts/notifications/domain/exceptions/destination-already-exists.exception';
 import { NotificationChannelEnum } from '@contexts/notifications/domain/enums/notification-channel.enum';
 import { INotificationChannelDestinationWriteRepository } from '@contexts/notifications/domain/repositories/write/notification-channel-destination-write.repository';
 
@@ -17,9 +17,11 @@ const VALID_INPUT = {
 const EXPECTED_AAD = `notifications:channel-destination:${VALID_INPUT.tenantId}:${NotificationChannelEnum.DISCORD}`;
 const ENVELOPE = 'v1:iv:tag:ct';
 
-function buildUniqueViolation(): QueryFailedError {
-  const driverError = { code: '23505' };
-  return new QueryFailedError('INSERT', [], driverError as unknown as Error);
+function buildAlreadyExists(): DestinationAlreadyExistsException {
+  return new DestinationAlreadyExistsException(
+    VALID_INPUT.tenantId,
+    VALID_INPUT.channel,
+  );
 }
 
 describe('RegisterNotificationChannelDestinationCommandHandler', () => {
@@ -110,7 +112,7 @@ describe('RegisterNotificationChannelDestinationCommandHandler', () => {
     expect(result.id).toBe('99999999-9999-4999-8999-999999999999');
   });
 
-  it('retries once as a rotation when the first save hits a 23505 unique violation (D12)', async () => {
+  it('retries once as a rotation when the first save throws DestinationAlreadyExistsException (D12)', async () => {
     const now = new Date('2026-01-01T00:00:00.000Z');
     const rotatedAggregate = {
       id: { value: '99999999-9999-4999-8999-999999999999' },
@@ -127,7 +129,7 @@ describe('RegisterNotificationChannelDestinationCommandHandler', () => {
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(rotatedAggregate as never);
     writeRepository.save
-      .mockRejectedValueOnce(buildUniqueViolation())
+      .mockRejectedValueOnce(buildAlreadyExists())
       .mockImplementationOnce((aggregate) => Promise.resolve(aggregate));
 
     const result = await handler.execute(
@@ -138,6 +140,19 @@ describe('RegisterNotificationChannelDestinationCommandHandler', () => {
     expect(writeRepository.save).toHaveBeenCalledTimes(2);
     expect(rotatedAggregate.rotate).toHaveBeenCalledTimes(1);
     expect(result.id).toBe('99999999-9999-4999-8999-999999999999');
+  });
+
+  it('does not retry a second time when the retry save also throws DestinationAlreadyExistsException', async () => {
+    const alreadyExists = buildAlreadyExists();
+    writeRepository.findByTenantAndChannel.mockResolvedValue(null);
+    writeRepository.save.mockRejectedValue(alreadyExists);
+
+    await expect(
+      handler.execute(
+        new RegisterNotificationChannelDestinationCommand(VALID_INPUT),
+      ),
+    ).rejects.toBe(alreadyExists);
+    expect(writeRepository.save).toHaveBeenCalledTimes(2);
   });
 
   it('rethrows an unexpected save error unchanged, without a retry', async () => {
