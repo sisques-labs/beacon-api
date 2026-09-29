@@ -17,17 +17,21 @@ import {
 import { NotificationIngestConsumer } from '../src/contexts/notifications/transport/kafka/consumers/notification-ingest.consumer';
 
 import { createE2EApp, E2EContext } from './helpers/app-bootstrap';
+import { seedClient } from './helpers/client-seed';
 import { truncateAll } from './helpers/db-reset';
 import { waitForQueueDrained } from './helpers/queue-drain';
 
 const QUEUE_NAME = notificationDeliveryQueueConfig().name;
 
-function buildPayload(value: Record<string, unknown>): IInboundMessage {
+function buildPayload(
+  value: Record<string, unknown>,
+  apiKey: string,
+): IInboundMessage {
   return {
     topic: 'beacon-api.notification-requests',
     partition: 0,
     key: null,
-    headers: {},
+    headers: { 'x-api-key': apiKey },
     value: JSON.stringify(value),
   };
 }
@@ -158,9 +162,10 @@ describe('Notification Discord delivery (e2e)', () => {
 
   it('delivers to Discord and transitions to SENT on a 2xx webhook response', async () => {
     postSpy.mockReturnValue(buildSuccessResponse());
-    const event = buildValidEvent();
+    const client = await seedClient(ctx.app);
+    const event = buildValidEvent({ tenantId: client.tenantId });
 
-    await consumer.handleMessage(buildPayload(event));
+    await consumer.handleMessage(buildPayload(event, client.apiKey));
     const delivered = await waitForTerminalStatus(
       writeRepository,
       event.tenantId,
@@ -177,9 +182,10 @@ describe('Notification Discord delivery (e2e)', () => {
     postSpy
       .mockReturnValueOnce(throwError(() => buildAxiosError(500)))
       .mockReturnValue(buildSuccessResponse());
-    const event = buildValidEvent();
+    const client = await seedClient(ctx.app);
+    const event = buildValidEvent({ tenantId: client.tenantId });
 
-    await consumer.handleMessage(buildPayload(event));
+    await consumer.handleMessage(buildPayload(event, client.apiKey));
     const delivered = await waitForTerminalStatus(
       writeRepository,
       event.tenantId,
@@ -192,10 +198,11 @@ describe('Notification Discord delivery (e2e)', () => {
 
   it('retries until exhaustion then transitions to FAILED with a failureReason', async () => {
     postSpy.mockReturnValue(throwError(() => buildAxiosError(500)));
-    const event = buildValidEvent();
+    const client = await seedClient(ctx.app);
+    const event = buildValidEvent({ tenantId: client.tenantId });
     const { attempts } = notificationDeliveryQueueConfig();
 
-    await consumer.handleMessage(buildPayload(event));
+    await consumer.handleMessage(buildPayload(event, client.apiKey));
     const delivered = await waitForTerminalStatus(
       writeRepository,
       event.tenantId,
@@ -216,9 +223,10 @@ describe('Notification Discord delivery (e2e)', () => {
     // instead of racing a live worker.
     await queue.pause();
     postSpy.mockReturnValue(buildSuccessResponse());
-    const event = buildValidEvent();
+    const client = await seedClient(ctx.app);
+    const event = buildValidEvent({ tenantId: client.tenantId });
 
-    await consumer.handleMessage(buildPayload(event));
+    await consumer.handleMessage(buildPayload(event, client.apiKey));
     const enqueued = await writeRepository.findByDedupeKey(
       event.tenantId,
       event.dedupeKey,
