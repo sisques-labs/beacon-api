@@ -10,11 +10,11 @@
   "homepage": "https://github.com/sisques-labs/beacon-api",
   "private": true,
   "license": "UNLICENSED",
-  "packageManager": "pnpm@12.6.0",
+  "packageManager": "pnpm@12.11.2",
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
-      "version": ">=11",
+      "version": "12.11.2",
       "onFail": "ignore"
     }
   },
