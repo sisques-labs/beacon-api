@@ -1,4 +1,6 @@
+import { Logger } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { Request } from 'express';
 import { Mocked, vi } from 'vitest';
 
 import { CreateNotificationCommand } from '@contexts/notifications/application/commands/create-notification/create-notification.command';
@@ -9,6 +11,12 @@ import { NotificationCreateRequestDto } from '@contexts/notifications/transport/
 import { NotificationCreateResponseDto } from '@contexts/notifications/transport/rest/dtos/notification-create-response.dto';
 import { NotificationController } from '@contexts/notifications/transport/rest/controllers/notification.controller';
 import { NotificationRestMapper } from '@contexts/notifications/transport/rest/mappers/notification.mapper';
+
+function buildRequest(apiKey?: string): Request {
+  return {
+    headers: apiKey ? { 'x-api-key': apiKey } : {},
+  } as unknown as Request;
+}
 
 function buildCreateRequestDto(): NotificationCreateRequestDto {
   const dto = new NotificationCreateRequestDto();
@@ -61,11 +69,15 @@ describe('NotificationController', () => {
     );
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('dispatches NotificationFindByIdQuery with the requested id', async () => {
     const viewModel = buildViewModel();
     queryBus.execute.mockResolvedValue(viewModel);
 
-    await controller.findById(viewModel.id);
+    await controller.findById(viewModel.id, buildRequest('some-key'));
 
     expect(queryBus.execute).toHaveBeenCalledWith(
       new NotificationFindByIdQuery({ id: viewModel.id }),
@@ -76,7 +88,10 @@ describe('NotificationController', () => {
     const viewModel = buildViewModel();
     queryBus.execute.mockResolvedValue(viewModel);
 
-    const result = await controller.findById(viewModel.id);
+    const result = await controller.findById(
+      viewModel.id,
+      buildRequest('some-key'),
+    );
 
     expect(result).toEqual({
       id: viewModel.id,
@@ -103,7 +118,7 @@ describe('NotificationController', () => {
       id: '11111111-1111-4111-8111-111111111111',
     });
 
-    await controller.create(dto);
+    await controller.create(dto, buildRequest('some-key'));
 
     expect(commandBus.execute).toHaveBeenCalledTimes(1);
     expect(commandBus.execute).toHaveBeenCalledWith(
@@ -127,11 +142,69 @@ describe('NotificationController', () => {
     commandBus.execute.mockResolvedValue(commandResult);
     notificationRestMapper.toResponseDtoFromResult.mockReturnValue(responseDto);
 
-    const result = await controller.create(dto);
+    const result = await controller.create(dto, buildRequest('some-key'));
 
     expect(notificationRestMapper.toResponseDtoFromResult).toHaveBeenCalledWith(
       commandResult,
     );
     expect(result).toBe(responseDto);
+  });
+
+  it('logs a readiness warning when findById is called with no x-api-key header', async () => {
+    const warnSpy = vi
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    const viewModel = buildViewModel();
+    queryBus.execute.mockResolvedValue(viewModel);
+
+    await controller.findById(viewModel.id, buildRequest());
+
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(queryBus.execute).toHaveBeenCalledWith(
+      new NotificationFindByIdQuery({ id: viewModel.id }),
+    );
+  });
+
+  it('does not warn when findById is called with an x-api-key header', async () => {
+    const warnSpy = vi
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    const viewModel = buildViewModel();
+    queryBus.execute.mockResolvedValue(viewModel);
+
+    await controller.findById(viewModel.id, buildRequest('some-key'));
+
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it('logs a readiness warning including the body tenantId when create is called with no x-api-key header', async () => {
+    const warnSpy = vi
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    const dto = buildCreateRequestDto();
+    commandBus.execute.mockResolvedValue({
+      id: '11111111-1111-4111-8111-111111111111',
+    });
+
+    await controller.create(dto, buildRequest());
+
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    const [message] = warnSpy.mock.calls[0] as [string];
+    expect(message).toContain(dto.tenantId);
+    expect(commandBus.execute).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not warn when create is called with an x-api-key header', async () => {
+    const warnSpy = vi
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    const dto = buildCreateRequestDto();
+    commandBus.execute.mockResolvedValue({
+      id: '11111111-1111-4111-8111-111111111111',
+    });
+
+    await controller.create(dto, buildRequest('some-key'));
+
+    expect(warnSpy).not.toHaveBeenCalled();
   });
 });
