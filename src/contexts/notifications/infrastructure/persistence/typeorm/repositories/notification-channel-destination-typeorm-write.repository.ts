@@ -11,6 +11,7 @@ import { QueryFailedError, Repository } from 'typeorm';
 import { NotificationChannelDestinationAggregate } from '@contexts/notifications/domain/aggregates/notification-channel-destination.aggregate';
 import { DestinationAlreadyExistsException } from '@contexts/notifications/domain/exceptions/destination-already-exists.exception';
 import { INotificationChannelDestinationWriteRepository } from '@contexts/notifications/domain/repositories/write/notification-channel-destination-write.repository';
+import { assertNotificationChannelDestinationCriteria } from '@contexts/notifications/infrastructure/persistence/typeorm/criteria/notification-channel-destination-criteria.guard';
 import { NotificationChannelDestinationEntity } from '@contexts/notifications/infrastructure/persistence/typeorm/entities/notification-channel-destination.entity';
 import { NotificationChannelDestinationTypeormMapper } from '@contexts/notifications/infrastructure/persistence/typeorm/mappers/notification-channel-destination-typeorm.mapper';
 
@@ -36,19 +37,10 @@ export class NotificationChannelDestinationTypeormWriteRepository
     return entity ? this.mapper.toAggregate(entity) : null;
   }
 
-  async findByTenantAndChannel(
-    tenantId: string,
-    channel: string,
-  ): Promise<NotificationChannelDestinationAggregate | null> {
-    const entity = await this.repository.findOne({
-      where: { tenantId, channel },
-    });
-    return entity ? this.mapper.toAggregate(entity) : null;
-  }
-
   async findByCriteria(
     criteria: Criteria,
   ): Promise<PaginatedResult<NotificationChannelDestinationAggregate>> {
+    assertNotificationChannelDestinationCriteria(criteria);
     const { page, limit, skip } = await this.calculatePagination(criteria);
     const qb = applyCriteriaToQueryBuilder(
       this.repository.createQueryBuilder('notificationChannelDestination'),

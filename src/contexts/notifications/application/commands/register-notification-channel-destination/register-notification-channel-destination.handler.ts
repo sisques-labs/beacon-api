@@ -1,6 +1,11 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs';
-import { BaseCommandHandler, UuidValueObject } from '@sisques-labs/nestjs-kit';
+import {
+  BaseCommandHandler,
+  Criteria,
+  FilterOperator,
+  UuidValueObject,
+} from '@sisques-labs/nestjs-kit';
 
 import { RegisterNotificationChannelDestinationResult } from '@contexts/notifications/application/commands/register-notification-channel-destination/register-notification-channel-destination-result.interface';
 import { RegisterNotificationChannelDestinationCommand } from '@contexts/notifications/application/commands/register-notification-channel-destination/register-notification-channel-destination.command';
@@ -66,10 +71,7 @@ export class RegisterNotificationChannelDestinationCommandHandler
     encryptedWebhookUrl: string,
     isRetry: boolean,
   ): Promise<RegisterNotificationChannelDestinationResult> {
-    const existing = await this.writeRepository.findByTenantAndChannel(
-      command.tenantId.value,
-      command.channel.value,
-    );
+    const existing = await this.findExisting(command);
 
     if (existing) {
       existing.rotate(new EncryptedSecretValueObject(encryptedWebhookUrl));
@@ -107,5 +109,29 @@ export class RegisterNotificationChannelDestinationCommandHandler
       `Notification channel destination ${aggregate.id.value} registered`,
     );
     return { id: aggregate.id.value };
+  }
+
+  /**
+   * The unique index `(tenantId, channel)` guarantees at most one row, so the
+   * default first page of `findByCriteria` (page 1, perPage 10) is enough.
+   */
+  private async findExisting(
+    command: RegisterNotificationChannelDestinationCommand,
+  ): Promise<NotificationChannelDestinationAggregate | null> {
+    const result = await this.writeRepository.findByCriteria(
+      new Criteria([
+        {
+          field: 'tenantId',
+          operator: FilterOperator.EQUALS,
+          value: command.tenantId.value,
+        },
+        {
+          field: 'channel',
+          operator: FilterOperator.EQUALS,
+          value: command.channel.value,
+        },
+      ]),
+    );
+    return result.items[0] ?? null;
   }
 }
