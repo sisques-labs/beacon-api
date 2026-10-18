@@ -52,6 +52,11 @@ export class ClientTypeormReadRepository
     return entity ? this.mapper.toViewModel(entity) : null;
   }
 
+  async findAll(): Promise<ClientViewModel[]> {
+    const entities = await this.repository.find({ select: METADATA_SELECT });
+    return entities.map((entity) => this.mapper.toViewModel(entity));
+  }
+
   async findByCriteria(
     criteria: Criteria,
   ): Promise<PaginatedResult<ClientViewModel>> {
