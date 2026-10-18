@@ -73,14 +73,17 @@ describe('NotificationController', () => {
     vi.restoreAllMocks();
   });
 
-  it('dispatches NotificationFindByIdQuery with the requested id', async () => {
+  it('dispatches NotificationFindByIdQuery with the requested id and the authenticated tenant (D25)', async () => {
     const viewModel = buildViewModel();
     queryBus.execute.mockResolvedValue(viewModel);
 
-    await controller.findById(viewModel.id);
+    await controller.findById(viewModel.id, AUTHENTICATED_CLIENT);
 
     expect(queryBus.execute).toHaveBeenCalledWith(
-      new NotificationFindByIdQuery({ id: viewModel.id }),
+      new NotificationFindByIdQuery({
+        id: viewModel.id,
+        tenantId: AUTHENTICATED_CLIENT.tenantId,
+      }),
     );
   });
 
@@ -88,7 +91,10 @@ describe('NotificationController', () => {
     const viewModel = buildViewModel();
     queryBus.execute.mockResolvedValue(viewModel);
 
-    const result = await controller.findById(viewModel.id);
+    const result = await controller.findById(
+      viewModel.id,
+      AUTHENTICATED_CLIENT,
+    );
 
     expect(result).toEqual({
       id: viewModel.id,
