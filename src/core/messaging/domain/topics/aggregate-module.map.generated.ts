@@ -13,6 +13,7 @@
  * @see scripts/generate-aggregate-module-map.ts
  */
 export const AGGREGATE_MODULE_MAP: Readonly<Record<string, string>> = {
+  ClientAggregate: 'clients',
   NotificationAggregate: 'notifications',
   NotificationChannelDestinationAggregate: 'notifications',
 };
