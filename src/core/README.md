@@ -20,12 +20,12 @@ delivery durability must never be silently disabled behind a flag (see
 `openspec/changes/notification-delivery-decoupling/design.md` D7). Wired
 unconditionally via `BullModule.forRootAsync` in `core.module.ts`.
 
-| Var | Required | Default |
-|---|---|---|
-| `REDIS_HOST` | **Yes** | — |
-| `REDIS_PORT` | No | `6379` |
-| `REDIS_PASSWORD` | No | (none) |
-| `REDIS_DB` | No | `0` |
+| Var              | Required | Default |
+| ---------------- | -------- | ------- |
+| `REDIS_HOST`     | **Yes**  | —       |
+| `REDIS_PORT`     | No       | `6379`  |
+| `REDIS_PASSWORD` | No       | (none)  |
+| `REDIS_DB`       | No       | `0`     |
 
 Local dev: `docker-compose.yml`'s `redis` service (port `6381`, AOF
 persistence). Tests: `docker-compose.test.yml`'s `redis-test` service (port
@@ -44,9 +44,40 @@ dependency:
   rather than reusing BullMQ's connection — BullMQ requires
   `maxRetriesPerRequest: null` and holds blocking connections, a known
   footgun for a simple ping (design.md D8). Reports `{ redis: { status:
-  'up' } }` or `{ redis: { status: 'down', message: '<error>' } }`; a down
+'up' } }` or `{ redis: { status: 'down', message: '<error>' } }`; a down
   Redis fails the whole readiness check with a 503, distinguishable from a
   database failure by the `redis` key in the response body.
+
+## Crypto (`src/core/crypto/`)
+
+`AesGcmCipherService` (design.md D4/D5/D6) is a context-agnostic AES-256-GCM
+encryption service, wired `@Global` via `CryptoModule` so any bounded context
+can inject it. It produces/consumes a self-describing envelope
+`v{keyVersion}:{iv}:{authTag}:{ciphertext}` (all parts base64url), meant for
+storage in one `text` column. `encrypt()` uses a fresh 12-byte IV every call.
+Callers MUST pass the same AAD to `decrypt()` used at `encrypt()` time — a
+mismatch, or any tampering of the envelope, fails the GCM auth tag check and
+throws.
+
+Core has no notion of "context": a bounded context that needs encryption
+defines its own `ISecretCipherPort` (`application/ports/`) and a thin adapter
+in `infrastructure/adapters/` that delegates to `AesGcmCipherService` — it
+never injects the core service directly outside that boundary.
+
+| Var                              | Required | Default                                                                |
+| -------------------------------- | -------- | ---------------------------------------------------------------------- |
+| `SECRETS_ENCRYPTION_KEY`         | **Yes**  | — (canonical base64 of exactly 32 bytes, `^[A-Za-z0-9+/]{43}=$`)       |
+| `SECRETS_ENCRYPTION_KEY_VERSION` | No       | `1` (integer, 1-255; an empty value is rejected)                       |
+| `SECRETS_ENCRYPTION_KEY_<n>`     | No       | — (retired key for version `n`, same format; kept for decryption only) |
+
+**Key rotation.** `encrypt()` always uses the current key
+(`SECRETS_ENCRYPTION_KEY` at `SECRETS_ENCRYPTION_KEY_VERSION`); `decrypt()`
+picks the key from the envelope's `v{n}` prefix. To rotate: generate a new key,
+move the old one to `SECRETS_ENCRYPTION_KEY_<oldVersion>`, set the new key as
+`SECRETS_ENCRYPTION_KEY` and bump `SECRETS_ENCRYPTION_KEY_VERSION`. An envelope
+whose version is neither current nor in the keyring fails with
+`Unknown encryption key version`. Every configured key is validated at boot
+(`env.validation.ts` and `crypto.config.ts` share `crypto-env.parser.ts`).
 
 ## Other cross-cutting modules
 
