@@ -84,6 +84,20 @@ export class NotificationTypeormWriteRepository
     await this.repository.delete(id);
   }
 
+  /**
+   * A single atomic `UPDATE ... WHERE id = :id` — never an insert, unlike
+   * `save()`'s id-based upsert. Used by delivery's terminal-state
+   * persistence (design.md D1/D2) so a notification row deleted after it
+   * was read (e.g. tenant/GDPR erasure, ops cleanup, or an e2e fixture
+   * truncate racing a still-in-flight delivery job) can never be
+   * resurrected by a stale in-memory aggregate.
+   */
+  async updateIfExists(aggregate: NotificationAggregate): Promise<boolean> {
+    const { id, ...fields } = this.mapper.toEntity(aggregate);
+    const result = await this.repository.update({ id }, fields);
+    return (result.affected ?? 0) > 0;
+  }
+
   private isUniqueViolation(error: unknown): boolean {
     return (
       error instanceof QueryFailedError &&

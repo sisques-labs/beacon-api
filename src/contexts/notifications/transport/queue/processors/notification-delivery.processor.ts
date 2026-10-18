@@ -1,10 +1,11 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
-import { Job } from 'bullmq';
+import { Job, UnrecoverableError } from 'bullmq';
 
 import { DeliverNotificationCommand } from '@contexts/notifications/application/commands/deliver-notification/deliver-notification.command';
 import { INotificationDeliveryJobData } from '@contexts/notifications/application/ports/notification-delivery-job-data.interface';
+import { NonRetryableNotificationDeliveryException } from '@contexts/notifications/domain/exceptions/non-retryable-notification-delivery.exception';
 import { notificationDeliveryQueueConfig } from '@contexts/notifications/infrastructure/config/notification-delivery-queue.config';
 
 /**
@@ -43,6 +44,16 @@ export class NotificationDeliveryProcessor extends WorkerHost {
       this.logger.warn(
         `Delivery attempt ${attemptNumber}/${maxAttempts} failed for notification ${job.data.notificationId}`,
       );
+
+      // D2 — a fail-closed destination fault (no destination configured, or
+      // one that cannot be decrypted) cannot heal within a retry backoff.
+      // Converting it into `UnrecoverableError` here — the one place this
+      // module already imports `bullmq` — ends the job with zero further
+      // attempts while still landing it in BullMQ's failed set for ops.
+      if (error instanceof NonRetryableNotificationDeliveryException) {
+        throw new UnrecoverableError(error.message);
+      }
+
       throw error;
     }
   }
