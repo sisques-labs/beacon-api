@@ -47,7 +47,9 @@ import { NotificationMutationsResolver } from '@contexts/notifications/transport
 import { NotificationQueriesResolver } from '@contexts/notifications/transport/graphql/resolvers/queries/notification-queries.resolver';
 import { NotificationIngestConsumer } from '@contexts/notifications/transport/kafka/consumers/notification-ingest.consumer';
 import { NotificationDeliveryProcessor } from '@contexts/notifications/transport/queue/processors/notification-delivery.processor';
+import { NotificationChannelDestinationController } from '@contexts/notifications/transport/rest/controllers/notification-channel-destination.controller';
 import { NotificationController } from '@contexts/notifications/transport/rest/controllers/notification.controller';
+import { NotificationChannelDestinationRestMapper } from '@contexts/notifications/transport/rest/mappers/notification-channel-destination.mapper';
 import { NotificationRestMapper } from '@contexts/notifications/transport/rest/mappers/notification.mapper';
 
 const COMMAND_HANDLERS = [
@@ -112,7 +114,10 @@ const GRAPHQL_PROVIDERS = [
   NotificationMutationsResolver,
   NotificationGraphQLMapper,
 ];
-const REST_PROVIDERS = [NotificationRestMapper];
+const REST_PROVIDERS = [
+  NotificationRestMapper,
+  NotificationChannelDestinationRestMapper,
+];
 const KAFKA_CONSUMERS = [NotificationIngestConsumer];
 const QUEUE_PROCESSORS = [NotificationDeliveryProcessor];
 
@@ -128,7 +133,10 @@ const QUEUE_PROCESSORS = [NotificationDeliveryProcessor];
     BullModule.registerQueue({ name: notificationDeliveryQueueConfig().name }),
     HttpModule,
   ],
-  controllers: [NotificationController],
+  controllers: [
+    NotificationController,
+    NotificationChannelDestinationController,
+  ],
   providers: [
     ...COMMAND_HANDLERS,
     ...EVENT_HANDLERS,
