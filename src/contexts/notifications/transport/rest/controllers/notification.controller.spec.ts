@@ -1,9 +1,9 @@
 import { Logger } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { Request } from 'express';
 import { Mocked, vi } from 'vitest';
 
 import { CreateNotificationCommand } from '@contexts/notifications/application/commands/create-notification/create-notification.command';
+import { IAuthenticatedClient } from '@contexts/notifications/application/ports/authenticated-client.interface';
 import { NotificationFindByIdQuery } from '@contexts/notifications/application/queries/notification-find-by-id/notification-find-by-id.query';
 import { NotificationChannelEnum } from '@contexts/notifications/domain/enums/notification-channel.enum';
 import { NotificationViewModel } from '@contexts/notifications/domain/view-models/notification.view-model';
@@ -12,28 +12,28 @@ import { NotificationCreateResponseDto } from '@contexts/notifications/transport
 import { NotificationController } from '@contexts/notifications/transport/rest/controllers/notification.controller';
 import { NotificationRestMapper } from '@contexts/notifications/transport/rest/mappers/notification.mapper';
 
-function buildRequest(apiKey?: string): Request {
-  return {
-    headers: apiKey ? { 'x-api-key': apiKey } : {},
-  } as unknown as Request;
-}
+const AUTHENTICATED_CLIENT: IAuthenticatedClient = {
+  clientId: '99999999-9999-4999-8999-999999999999',
+  tenantId: '22222222-2222-4222-8222-222222222222',
+};
 
-function buildCreateRequestDto(): NotificationCreateRequestDto {
+function buildCreateRequestDto(
+  overrides: Partial<NotificationCreateRequestDto> = {},
+): NotificationCreateRequestDto {
   const dto = new NotificationCreateRequestDto();
-  dto.tenantId = '22222222-2222-4222-8222-222222222222';
   dto.recipientUserId = '33333333-3333-4333-8333-333333333333';
   dto.channel = NotificationChannelEnum.DISCORD;
   dto.title = 'Title';
   dto.body = 'Body';
   dto.sourceService = 'gardenia';
   dto.dedupeKey = 'dedupe-key-1';
-  return dto;
+  return Object.assign(dto, overrides);
 }
 
 function buildViewModel(): NotificationViewModel {
   return new NotificationViewModel({
     id: '11111111-1111-4111-8111-111111111111',
-    tenantId: '22222222-2222-4222-8222-222222222222',
+    tenantId: AUTHENTICATED_CLIENT.tenantId,
     recipientUserId: '33333333-3333-4333-8333-333333333333',
     channel: 'DISCORD',
     status: 'PENDING',
@@ -77,7 +77,7 @@ describe('NotificationController', () => {
     const viewModel = buildViewModel();
     queryBus.execute.mockResolvedValue(viewModel);
 
-    await controller.findById(viewModel.id, buildRequest('some-key'));
+    await controller.findById(viewModel.id);
 
     expect(queryBus.execute).toHaveBeenCalledWith(
       new NotificationFindByIdQuery({ id: viewModel.id }),
@@ -88,10 +88,7 @@ describe('NotificationController', () => {
     const viewModel = buildViewModel();
     queryBus.execute.mockResolvedValue(viewModel);
 
-    const result = await controller.findById(
-      viewModel.id,
-      buildRequest('some-key'),
-    );
+    const result = await controller.findById(viewModel.id);
 
     expect(result).toEqual({
       id: viewModel.id,
@@ -112,18 +109,41 @@ describe('NotificationController', () => {
     });
   });
 
-  it('dispatches one CreateNotificationCommand built from the request DTO', async () => {
+  it('dispatches CreateNotificationCommand using the authenticated tenant, not the body', async () => {
+    const dto = buildCreateRequestDto({
+      tenantId: '99999999-9999-4999-8999-000000000000',
+    });
+    commandBus.execute.mockResolvedValue({
+      id: '11111111-1111-4111-8111-111111111111',
+    });
+
+    await controller.create(dto, AUTHENTICATED_CLIENT);
+
+    expect(commandBus.execute).toHaveBeenCalledTimes(1);
+    expect(commandBus.execute).toHaveBeenCalledWith(
+      new CreateNotificationCommand({
+        tenantId: AUTHENTICATED_CLIENT.tenantId,
+        recipientUserId: dto.recipientUserId,
+        channel: dto.channel,
+        title: dto.title,
+        body: dto.body,
+        sourceService: dto.sourceService,
+        dedupeKey: dto.dedupeKey,
+      }),
+    );
+  });
+
+  it('dispatches CreateNotificationCommand using the authenticated tenant when no body tenantId is present', async () => {
     const dto = buildCreateRequestDto();
     commandBus.execute.mockResolvedValue({
       id: '11111111-1111-4111-8111-111111111111',
     });
 
-    await controller.create(dto, buildRequest('some-key'));
+    await controller.create(dto, AUTHENTICATED_CLIENT);
 
-    expect(commandBus.execute).toHaveBeenCalledTimes(1);
     expect(commandBus.execute).toHaveBeenCalledWith(
       new CreateNotificationCommand({
-        tenantId: dto.tenantId,
+        tenantId: AUTHENTICATED_CLIENT.tenantId,
         recipientUserId: dto.recipientUserId,
         channel: dto.channel,
         title: dto.title,
@@ -142,7 +162,7 @@ describe('NotificationController', () => {
     commandBus.execute.mockResolvedValue(commandResult);
     notificationRestMapper.toResponseDtoFromResult.mockReturnValue(responseDto);
 
-    const result = await controller.create(dto, buildRequest('some-key'));
+    const result = await controller.create(dto, AUTHENTICATED_CLIENT);
 
     expect(notificationRestMapper.toResponseDtoFromResult).toHaveBeenCalledWith(
       commandResult,
@@ -150,34 +170,42 @@ describe('NotificationController', () => {
     expect(result).toBe(responseDto);
   });
 
-  it('logs a readiness warning when findById is called with no x-api-key header', async () => {
+  it('logs a warning when the body tenantId mismatches the authenticated tenant, and still creates for the authenticated tenant', async () => {
     const warnSpy = vi
       .spyOn(Logger.prototype, 'warn')
       .mockImplementation(() => undefined);
-    const viewModel = buildViewModel();
-    queryBus.execute.mockResolvedValue(viewModel);
+    const dto = buildCreateRequestDto({
+      tenantId: '99999999-9999-4999-8999-000000000000',
+    });
+    commandBus.execute.mockResolvedValue({
+      id: '11111111-1111-4111-8111-111111111111',
+    });
 
-    await controller.findById(viewModel.id, buildRequest());
+    await controller.create(dto, AUTHENTICATED_CLIENT);
 
     expect(warnSpy).toHaveBeenCalledTimes(1);
-    expect(queryBus.execute).toHaveBeenCalledWith(
-      new NotificationFindByIdQuery({ id: viewModel.id }),
-    );
+    const [message] = warnSpy.mock.calls[0] as [string];
+    expect(message).toContain(dto.tenantId as string);
+    expect(commandBus.execute).toHaveBeenCalledTimes(1);
   });
 
-  it('does not warn when findById is called with an x-api-key header', async () => {
+  it('does not warn when the body tenantId matches the authenticated tenant', async () => {
     const warnSpy = vi
       .spyOn(Logger.prototype, 'warn')
       .mockImplementation(() => undefined);
-    const viewModel = buildViewModel();
-    queryBus.execute.mockResolvedValue(viewModel);
+    const dto = buildCreateRequestDto({
+      tenantId: AUTHENTICATED_CLIENT.tenantId,
+    });
+    commandBus.execute.mockResolvedValue({
+      id: '11111111-1111-4111-8111-111111111111',
+    });
 
-    await controller.findById(viewModel.id, buildRequest('some-key'));
+    await controller.create(dto, AUTHENTICATED_CLIENT);
 
     expect(warnSpy).not.toHaveBeenCalled();
   });
 
-  it('logs a readiness warning including the body tenantId when create is called with no x-api-key header', async () => {
+  it('does not warn when no body tenantId is presented', async () => {
     const warnSpy = vi
       .spyOn(Logger.prototype, 'warn')
       .mockImplementation(() => undefined);
@@ -186,24 +214,7 @@ describe('NotificationController', () => {
       id: '11111111-1111-4111-8111-111111111111',
     });
 
-    await controller.create(dto, buildRequest());
-
-    expect(warnSpy).toHaveBeenCalledTimes(1);
-    const [message] = warnSpy.mock.calls[0] as [string];
-    expect(message).toContain(dto.tenantId);
-    expect(commandBus.execute).toHaveBeenCalledTimes(1);
-  });
-
-  it('does not warn when create is called with an x-api-key header', async () => {
-    const warnSpy = vi
-      .spyOn(Logger.prototype, 'warn')
-      .mockImplementation(() => undefined);
-    const dto = buildCreateRequestDto();
-    commandBus.execute.mockResolvedValue({
-      id: '11111111-1111-4111-8111-111111111111',
-    });
-
-    await controller.create(dto, buildRequest('some-key'));
+    await controller.create(dto, AUTHENTICATED_CLIENT);
 
     expect(warnSpy).not.toHaveBeenCalled();
   });
