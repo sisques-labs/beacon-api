@@ -11,4 +11,13 @@ export interface INotificationWriteRepository extends IBaseWriteRepository<Notif
     tenantId: string,
     dedupeKey: string,
   ): Promise<NotificationAggregate | null>;
+
+  /**
+   * Persists the aggregate only if its row already exists, as one atomic
+   * `UPDATE` — never an insert. Returns `false` (no write performed) when
+   * the row is gone. Unlike `save()` (an id-based upsert), this can never
+   * resurrect a notification whose row was deleted after it was read
+   * (design.md D1/D2 delivery fail-closed persistence).
+   */
+  updateIfExists(entity: NotificationAggregate): Promise<boolean>;
 }
