@@ -38,6 +38,7 @@ describe('ClientTypeormReadRepository', () => {
   beforeEach(() => {
     ormRepository = {
       findOne: vi.fn(),
+      find: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
       createQueryBuilder: vi.fn(),
@@ -82,6 +83,38 @@ describe('ClientTypeormReadRepository', () => {
 
       expect(mapper.toViewModel).toHaveBeenCalledWith(entity);
       expect(result).toBe(viewModel);
+    });
+  });
+
+  describe('findAll', () => {
+    it('selects metadata columns only — never apiKeySecretHash (D17, mirrors D10)', async () => {
+      ormRepository.find.mockResolvedValue([]);
+
+      await repository.findAll();
+
+      expect(ormRepository.find).toHaveBeenCalledWith({
+        select: METADATA_SELECT,
+      });
+    });
+
+    it('maps every entity to a view model', async () => {
+      const entity = new ClientEntity();
+      const viewModel = buildViewModel();
+      ormRepository.find.mockResolvedValue([entity]);
+      mapper.toViewModel.mockReturnValue(viewModel);
+
+      const result = await repository.findAll();
+
+      expect(mapper.toViewModel).toHaveBeenCalledWith(entity);
+      expect(result).toEqual([viewModel]);
+    });
+
+    it('returns an empty array when no clients exist', async () => {
+      ormRepository.find.mockResolvedValue([]);
+
+      const result = await repository.findAll();
+
+      expect(result).toEqual([]);
     });
   });
 
