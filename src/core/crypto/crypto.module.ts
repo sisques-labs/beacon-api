@@ -1,18 +1,26 @@
 import { Global, Module } from '@nestjs/common';
+import { CqrsModule } from '@nestjs/cqrs';
 
 import { AesGcmCipherService } from '@core/crypto/aes-gcm-cipher.service';
+import { DecryptSecretCommandHandler } from '@core/crypto/application/commands/decrypt-secret/decrypt-secret.handler';
+import { EncryptSecretCommandHandler } from '@core/crypto/application/commands/encrypt-secret/encrypt-secret.handler';
+
+const COMMAND_HANDLERS = [
+  EncryptSecretCommandHandler,
+  DecryptSecretCommandHandler,
+];
 
 /**
- * Context-agnostic encryption primitives (design.md D6). `@Global` so every
- * bounded context can inject `AesGcmCipherService` without re-importing this
- * module — mirrors `ConfigModule`'s `isGlobal: true` wiring in
- * `core.module.ts`. A context still MUST NOT depend on this service
- * directly outside its own port/adapter boundary — see
- * `ISecretCipherPort` in `notifications/application/ports/`.
+ * Context-agnostic encryption primitives (design.md D6). Bounded contexts
+ * MUST NOT inject `AesGcmCipherService` (or import this module's internals)
+ * directly: they dispatch `EncryptSecretCommand` / `DecryptSecretCommand`
+ * through the `CommandBus`, behind their own port (e.g. `ISecretCipherPort`
+ * in `notifications/application/ports/`). The service stays an internal
+ * provider of this module and is not exported.
  */
 @Global()
 @Module({
-  providers: [AesGcmCipherService],
-  exports: [AesGcmCipherService],
+  imports: [CqrsModule],
+  providers: [AesGcmCipherService, ...COMMAND_HANDLERS],
 })
 export class CryptoModule {}

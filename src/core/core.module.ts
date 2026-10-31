@@ -53,9 +53,10 @@ const CORE_MODULES = [
     ],
     cache: true,
   }),
-  // Context-agnostic AES-256-GCM primitives (design.md D6) — `@Global`, so
-  // every bounded context can inject `AesGcmCipherService` behind its own
-  // `ISecretCipherPort` without re-importing this module.
+  // Context-agnostic AES-256-GCM primitives (design.md D6) — `@Global`.
+  // Bounded contexts reach it only via `EncryptSecretCommand` /
+  // `DecryptSecretCommand` on the CommandBus, behind their own
+  // `ISecretCipherPort`.
   CryptoModule,
   TypeOrmModule.forRootAsync({
     inject: [ConfigService],
