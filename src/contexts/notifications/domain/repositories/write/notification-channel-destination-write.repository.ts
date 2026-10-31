@@ -6,9 +6,10 @@ export const NOTIFICATION_CHANNEL_DESTINATION_WRITE_REPOSITORY = Symbol(
   'NOTIFICATION_CHANNEL_DESTINATION_WRITE_REPOSITORY',
 );
 
-export interface INotificationChannelDestinationWriteRepository extends IBaseWriteRepository<NotificationChannelDestinationAggregate> {
-  findByTenantAndChannel(
-    tenantId: string,
-    channel: string,
-  ): Promise<NotificationChannelDestinationAggregate | null>;
-}
+/**
+ * Lookups go through the two generic entry points inherited from the base
+ * contract: `findById` and `findByCriteria` (a `(tenantId, channel)` lookup is
+ * an equality criteria on those two fields).
+ */
+export type INotificationChannelDestinationWriteRepository =
+  IBaseWriteRepository<NotificationChannelDestinationAggregate>;
