@@ -7,16 +7,16 @@ import {
 } from '@contexts/notifications/domain/repositories/write/notification-write.repository';
 
 import { createE2EApp, E2EContext } from './helpers/app-bootstrap';
-import { seedClient } from './helpers/client-seed';
+import { revokeClient, seedClient } from './helpers/client-seed';
 import { truncateAll } from './helpers/db-reset';
 import { gql } from './helpers/graphql-client';
 
 const UNKNOWN_API_KEY = `bcn_${'a'.repeat(16)}_${'b'.repeat(43)}`;
 
-function buildAggregate() {
+function buildAggregate(overrides: { tenantId?: string } = {}) {
   return new NotificationBuilder()
     .withId(randomUUID())
-    .withTenantId(randomUUID())
+    .withTenantId(overrides.tenantId ?? randomUUID())
     .withRecipientUserId(randomUUID())
     .withChannel('DISCORD')
     .withTitle('Title')
@@ -46,10 +46,11 @@ describe('Notification get-by-id (e2e)', () => {
   });
 
   describe('REST — GET /api/v1/notifications/:id', () => {
-    // Phase B (design.md D21): NotificationController's class-level
+    // Phase B (design.md D21/D25): NotificationController's class-level
     // @UseGuards(ClientApiKeyGuard) guards findById too, as a side effect
-    // of guarding creation (task 28.2) — this endpoint's own tenant
-    // scoping (D25) arrives in Phase 29, not here.
+    // of guarding creation (task 28.2). The read is also tenant-scoped
+    // (D25, task 29.2/29.3): another tenant's notification is 404, never
+    // 403.
     it('rejects a missing API key with 401', async () => {
       const aggregate = buildAggregate();
       await writeRepository.save(aggregate);
@@ -73,9 +74,23 @@ describe('Notification get-by-id (e2e)', () => {
       expect(res.status).toBe(401);
     });
 
-    it('returns the notification when it exists', async () => {
+    it('rejects a revoked API key with 401', async () => {
       const client = await seedClient(ctx.app);
-      const aggregate = buildAggregate();
+      await revokeClient(ctx.app, client.id);
+      const aggregate = buildAggregate({ tenantId: client.tenantId });
+      await writeRepository.save(aggregate);
+
+      const res = await ctx
+        .http()
+        .get(`/api/v1/notifications/${aggregate.id.value}`)
+        .set('x-api-key', client.apiKey);
+
+      expect(res.status).toBe(401);
+    });
+
+    it('returns the notification when it exists for the authenticated tenant', async () => {
+      const client = await seedClient(ctx.app);
+      const aggregate = buildAggregate({ tenantId: client.tenantId });
       await writeRepository.save(aggregate);
 
       const res = await ctx
@@ -99,9 +114,48 @@ describe('Notification get-by-id (e2e)', () => {
 
       expect(res.status).toBe(404);
     });
+
+    it("returns 404, never 403, for another tenant's notification (D25)", async () => {
+      const owner = await seedClient(ctx.app);
+      const other = await seedClient(ctx.app);
+      const aggregate = buildAggregate({ tenantId: owner.tenantId });
+      await writeRepository.save(aggregate);
+
+      const res = await ctx
+        .http()
+        .get(`/api/v1/notifications/${aggregate.id.value}`)
+        .set('x-api-key', other.apiKey);
+
+      expect(res.status).toBe(404);
+      expect(res.status).not.toBe(403);
+    });
+
+    it('returns a nonexistent id and a cross-tenant id as the same, indistinguishable 404 body (D25)', async () => {
+      const owner = await seedClient(ctx.app);
+      const other = await seedClient(ctx.app);
+      const aggregate = buildAggregate({ tenantId: owner.tenantId });
+      await writeRepository.save(aggregate);
+
+      const crossTenantRes = await ctx
+        .http()
+        .get(`/api/v1/notifications/${aggregate.id.value}`)
+        .set('x-api-key', other.apiKey);
+      const nonexistentRes = await ctx
+        .http()
+        .get(`/api/v1/notifications/${randomUUID()}`)
+        .set('x-api-key', other.apiKey);
+
+      expect(crossTenantRes.status).toBe(404);
+      expect(nonexistentRes.status).toBe(404);
+      expect(crossTenantRes.body.error).toBe(nonexistentRes.body.error);
+    });
   });
 
   describe('GraphQL — notificationFindById', () => {
+    // Phase B (design.md D21/D25, task 29.3): the resolver gained
+    // @UseGuards(ClientApiKeyGuard) — every case below now requires a
+    // valid, unrevoked key, and the read is tenant-scoped the same way as
+    // the REST endpoint above.
     const query = `
       query ($input: NotificationFindByIdRequestDto!) {
         notificationFindById(input: $input) {
@@ -112,13 +166,57 @@ describe('Notification get-by-id (e2e)', () => {
       }
     `;
 
-    it('returns the notification when it exists', async () => {
-      const aggregate = buildAggregate();
+    it('rejects a missing API key with a GraphQL 401 error', async () => {
+      const res = await gql(ctx.app, query, { input: { id: randomUUID() } });
+
+      expect(res.body.errors).toBeDefined();
+      expect(res.body.errors[0].extensions?.originalError?.statusCode).toBe(
+        401,
+      );
+    });
+
+    it('rejects an unknown API key with a GraphQL 401 error', async () => {
+      const res = await gql(
+        ctx.app,
+        query,
+        { input: { id: randomUUID() } },
+        { 'x-api-key': UNKNOWN_API_KEY },
+      );
+
+      expect(res.body.errors).toBeDefined();
+      expect(res.body.errors[0].extensions?.originalError?.statusCode).toBe(
+        401,
+      );
+    });
+
+    it('rejects a revoked API key with a GraphQL 401 error', async () => {
+      const client = await seedClient(ctx.app);
+      await revokeClient(ctx.app, client.id);
+
+      const res = await gql(
+        ctx.app,
+        query,
+        { input: { id: randomUUID() } },
+        { 'x-api-key': client.apiKey },
+      );
+
+      expect(res.body.errors).toBeDefined();
+      expect(res.body.errors[0].extensions?.originalError?.statusCode).toBe(
+        401,
+      );
+    });
+
+    it('returns the notification when it exists for the authenticated tenant', async () => {
+      const client = await seedClient(ctx.app);
+      const aggregate = buildAggregate({ tenantId: client.tenantId });
       await writeRepository.save(aggregate);
 
-      const res = await gql(ctx.app, query, {
-        input: { id: aggregate.id.value },
-      });
+      const res = await gql(
+        ctx.app,
+        query,
+        { input: { id: aggregate.id.value } },
+        { 'x-api-key': client.apiKey },
+      );
 
       expect(res.status).toBe(200);
       expect(res.body.errors).toBeUndefined();
@@ -130,11 +228,45 @@ describe('Notification get-by-id (e2e)', () => {
     });
 
     it('returns a GraphQL error, not an unhandled crash, when the notification does not exist', async () => {
-      const res = await gql(ctx.app, query, { input: { id: randomUUID() } });
+      const client = await seedClient(ctx.app);
+
+      const res = await gql(
+        ctx.app,
+        query,
+        { input: { id: randomUUID() } },
+        { 'x-api-key': client.apiKey },
+      );
 
       expect(res.status).toBe(200);
       expect(res.body.errors).toBeDefined();
       expect(res.body.data?.notificationFindById ?? null).toBeNull();
+    });
+
+    it("returns the same not-found GraphQL error for another tenant's notification as for a nonexistent id, never a 403 (D25)", async () => {
+      const owner = await seedClient(ctx.app);
+      const other = await seedClient(ctx.app);
+      const aggregate = buildAggregate({ tenantId: owner.tenantId });
+      await writeRepository.save(aggregate);
+
+      const crossTenantRes = await gql(
+        ctx.app,
+        query,
+        { input: { id: aggregate.id.value } },
+        { 'x-api-key': other.apiKey },
+      );
+      const nonexistentRes = await gql(
+        ctx.app,
+        query,
+        { input: { id: randomUUID() } },
+        { 'x-api-key': other.apiKey },
+      );
+
+      expect(crossTenantRes.body.data?.notificationFindById ?? null).toBeNull();
+      expect(crossTenantRes.body.errors[0].extensions?.statusCode).toBe(404);
+      expect(crossTenantRes.body.errors[0].extensions?.statusCode).not.toBe(
+        403,
+      );
+      expect(nonexistentRes.body.errors[0].extensions?.statusCode).toBe(404);
     });
   });
 });
