@@ -21,6 +21,7 @@ import { AssertNotificationViewModelExistsService } from '@contexts/notification
 import { EncryptChannelDestinationSecretService } from '@contexts/notifications/application/services/write/encrypt-channel-destination-secret/encrypt-channel-destination-secret.service';
 import { AssertNotificationAggregateExistsService } from '@contexts/notifications/application/services/write/assert-notification-aggregate-exists.service';
 import { FindNotificationByDedupeKeyService } from '@contexts/notifications/application/services/write/find-notification-by-dedupe-key/find-notification-by-dedupe-key.service';
+import { ResolveNotificationDeliveryDestinationService } from '@contexts/notifications/application/services/write/resolve-notification-delivery-destination/resolve-notification-delivery-destination.service';
 import { NOTIFICATION_CHANNEL_DESTINATION_READ_REPOSITORY } from '@contexts/notifications/domain/repositories/read/notification-channel-destination-read.repository';
 import { NOTIFICATION_READ_REPOSITORY } from '@contexts/notifications/domain/repositories/read/notification-read.repository';
 import { NOTIFICATION_CHANNEL_DESTINATION_WRITE_REPOSITORY } from '@contexts/notifications/domain/repositories/write/notification-channel-destination-write.repository';
@@ -63,6 +64,7 @@ const APPLICATION_SERVICES = [
   AssertNotificationAggregateExistsService,
   FindNotificationByDedupeKeyService,
   EncryptChannelDestinationSecretService,
+  ResolveNotificationDeliveryDestinationService,
 ];
 const DOMAIN_BUILDERS = [NotificationChannelDestinationBuilder];
 const INFRASTRUCTURE_MAPPERS = [
