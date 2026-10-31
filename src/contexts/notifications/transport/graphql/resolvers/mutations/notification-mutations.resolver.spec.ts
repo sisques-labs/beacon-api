@@ -4,12 +4,19 @@ import {
   MutationResponseDto,
   MutationResponseGraphQLMapper,
 } from '@sisques-labs/nestjs-kit/graphql';
+import { Request } from 'express';
 import { Mocked, vi } from 'vitest';
 
 import { CreateNotificationCommand } from '@contexts/notifications/application/commands/create-notification/create-notification.command';
 import { NotificationChannelEnum } from '@contexts/notifications/domain/enums/notification-channel.enum';
 import { NotificationCreateRequestDto } from '@contexts/notifications/transport/graphql/dtos/requests/notification-create.request.dto';
 import { NotificationMutationsResolver } from '@contexts/notifications/transport/graphql/resolvers/mutations/notification-mutations.resolver';
+
+function buildGraphQLContext(apiKey?: string): { req: Request } {
+  return {
+    req: { headers: apiKey ? { 'x-api-key': apiKey } : {} } as Request,
+  };
+}
 
 function buildCreateRequestDto(): NotificationCreateRequestDto {
   const dto = new NotificationCreateRequestDto();
@@ -36,6 +43,10 @@ describe('NotificationMutationsResolver', () => {
     resolver = new NotificationMutationsResolver(commandBus, mapper);
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('logs at entry', async () => {
     const logSpy = vi.spyOn(Logger.prototype, 'log');
     const dto = buildCreateRequestDto();
@@ -46,7 +57,7 @@ describe('NotificationMutationsResolver', () => {
       new MutationResponseDto() as MutationResponseDto,
     );
 
-    await resolver.notificationCreate(dto);
+    await resolver.notificationCreate(dto, buildGraphQLContext('some-key'));
 
     expect(logSpy).toHaveBeenCalled();
   });
@@ -60,7 +71,7 @@ describe('NotificationMutationsResolver', () => {
       new MutationResponseDto() as MutationResponseDto,
     );
 
-    await resolver.notificationCreate(dto);
+    await resolver.notificationCreate(dto, buildGraphQLContext('some-key'));
 
     expect(commandBus.execute).toHaveBeenCalledTimes(1);
     expect(commandBus.execute).toHaveBeenCalledWith(
@@ -88,7 +99,10 @@ describe('NotificationMutationsResolver', () => {
     } as MutationResponseDto;
     mapper.toResponseDto.mockReturnValue(mapped);
 
-    const result = await resolver.notificationCreate(dto);
+    const result = await resolver.notificationCreate(
+      dto,
+      buildGraphQLContext('some-key'),
+    );
 
     expect(mapper.toResponseDto).toHaveBeenCalledWith({
       success: true,
@@ -96,5 +110,41 @@ describe('NotificationMutationsResolver', () => {
       message: expect.any(String),
     });
     expect(result).toBe(mapped);
+  });
+
+  it('logs a readiness warning including the input tenantId when called with no x-api-key header', async () => {
+    const warnSpy = vi
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    const dto = buildCreateRequestDto();
+    commandBus.execute.mockResolvedValue({
+      id: '11111111-1111-4111-8111-111111111111',
+    });
+    mapper.toResponseDto.mockReturnValue(
+      new MutationResponseDto() as MutationResponseDto,
+    );
+
+    await resolver.notificationCreate(dto, buildGraphQLContext());
+
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    const [message] = warnSpy.mock.calls[0] as [string];
+    expect(message).toContain(dto.tenantId);
+  });
+
+  it('does not warn when called with an x-api-key header', async () => {
+    const warnSpy = vi
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    const dto = buildCreateRequestDto();
+    commandBus.execute.mockResolvedValue({
+      id: '11111111-1111-4111-8111-111111111111',
+    });
+    mapper.toResponseDto.mockReturnValue(
+      new MutationResponseDto() as MutationResponseDto,
+    );
+
+    await resolver.notificationCreate(dto, buildGraphQLContext('some-key'));
+
+    expect(warnSpy).not.toHaveBeenCalled();
   });
 });
