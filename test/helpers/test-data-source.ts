@@ -2,10 +2,12 @@ import { DataSource, DataSourceOptions } from 'typeorm';
 
 import { CreateNotifications1789112026872 } from '../../src/database/migrations/1789112026872-create-notifications';
 import { CreateNotificationChannelDestinations1790358732657 } from '../../src/database/migrations/1790358732657-create-notification-channel-destinations';
+import { CreateClients1790516492000 } from '../../src/database/migrations/1790516492000-create-clients';
 
 const TEST_MIGRATIONS: DataSourceOptions['migrations'] = [
   CreateNotifications1789112026872,
   CreateNotificationChannelDestinations1790358732657,
+  CreateClients1790516492000,
 ];
 
 export function getTestDataSourceOptions(): DataSourceOptions {
