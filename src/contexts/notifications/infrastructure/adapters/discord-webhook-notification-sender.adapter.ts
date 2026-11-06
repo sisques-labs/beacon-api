@@ -1,22 +1,23 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { AxiosError } from 'axios';
 import { firstValueFrom } from 'rxjs';
 
+import { INotificationDeliveryDestination } from '@contexts/notifications/application/ports/notification-delivery-destination.interface';
 import { INotificationSenderPort } from '@contexts/notifications/application/ports/notification-sender.port';
 import { INotificationSendResult } from '@contexts/notifications/application/ports/notification-send-result.interface';
 import { INotificationPrimitives } from '@contexts/notifications/domain/primitives/notification.primitives';
-import { IDiscordConfig } from '@contexts/notifications/infrastructure/config/interfaces/discord-config.interface';
 
 /**
  * Discord incoming-webhook implementation of `INotificationSenderPort`.
  *
- * The webhook URL is always read from `discord.webhookUrl` (Beacon-side
- * config) — see design.md D3. It is NEVER taken from the notification
- * payload, since the unauthenticated ingestion topic would otherwise be an
- * SSRF sink for any caller-supplied URL. v1 posts every DISCORD notification
- * to this single fixed destination.
+ * The destination URL is resolved per tenant by
+ * `ResolveNotificationDeliveryDestinationService` and handed in by the
+ * caller (design.md D1/D3 — no service-wide config, no `ConfigService`
+ * dependency). `maxRedirects: 0` and a bounded `timeout` keep a redirect or
+ * a hanging connection from turning a webhook POST into an SSRF pivot or a
+ * stuck worker. Only `destination.logLabel` is ever logged — `url` MUST
+ * NEVER reach a log call.
  */
 @Injectable()
 export class DiscordWebhookNotificationSenderAdapter implements INotificationSenderPort {
@@ -24,46 +25,33 @@ export class DiscordWebhookNotificationSenderAdapter implements INotificationSen
     DiscordWebhookNotificationSenderAdapter.name,
   );
 
-  constructor(
-    private readonly httpService: HttpService,
-    private readonly configService: ConfigService,
-  ) {}
+  constructor(private readonly httpService: HttpService) {}
 
   async send(
     notification: INotificationPrimitives,
+    destination: INotificationDeliveryDestination,
   ): Promise<INotificationSendResult> {
-    const { webhookUrl } =
-      this.configService.getOrThrow<IDiscordConfig>('discord');
-
-    if (!webhookUrl) {
-      this.logger.error(
-        `Cannot deliver notification ${notification.id}: DISCORD_WEBHOOK_URL is not configured`,
-      );
-      return {
-        success: false,
-        failureReason: 'DISCORD_WEBHOOK_URL is not configured',
-      };
-    }
-
     this.logger.log(
-      `Posting notification ${notification.id} to Discord webhook`,
+      `Posting notification ${notification.id} to ${destination.logLabel}`,
     );
 
     try {
       await firstValueFrom(
-        this.httpService.post(webhookUrl, {
-          content: `**${notification.title}**\n${notification.body}`,
-        }),
+        this.httpService.post(
+          destination.url,
+          { content: `**${notification.title}**\n${notification.body}` },
+          { maxRedirects: 0, timeout: 10000 },
+        ),
       );
 
       this.logger.log(
-        `Notification ${notification.id} delivered to Discord successfully`,
+        `Notification ${notification.id} delivered to ${destination.logLabel} successfully`,
       );
       return { success: true, failureReason: null };
     } catch (error) {
       const failureReason = this.extractFailureReason(error);
       this.logger.error(
-        `Delivery failed for notification ${notification.id}: ${failureReason}`,
+        `Delivery failed for notification ${notification.id} to ${destination.logLabel}: ${failureReason}`,
       );
       return { success: false, failureReason };
     }

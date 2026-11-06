@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 
 import { getQueueToken } from '@nestjs/bullmq';
 import { HttpService } from '@nestjs/axios';
+import { CommandBus } from '@nestjs/cqrs';
 import { IInboundMessage } from '@sisques-labs/nestjs-kit/messaging';
 import { AxiosError, AxiosHeaders } from 'axios';
 import { Job, Queue } from 'bullmq';
@@ -9,6 +10,8 @@ import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 
 import { notificationDeliveryQueueConfig } from '../src/contexts/notifications/infrastructure/config/notification-delivery-queue.config';
+import { RegisterNotificationChannelDestinationCommand } from '../src/contexts/notifications/application/commands/register-notification-channel-destination/register-notification-channel-destination.command';
+import { RegisterNotificationChannelDestinationResult } from '../src/contexts/notifications/application/commands/register-notification-channel-destination/register-notification-channel-destination-result.interface';
 import { NotificationAggregate } from '../src/contexts/notifications/domain/aggregates/notification.aggregate';
 import {
   INotificationWriteRepository,
@@ -22,6 +25,32 @@ import { truncateAll } from './helpers/db-reset';
 import { waitForQueueDrained } from './helpers/queue-drain';
 
 const QUEUE_NAME = notificationDeliveryQueueConfig().name;
+const DESTINATION_WEBHOOK_URL =
+  'https://discord.com/api/webhooks/123456789012345678/aValidToken';
+
+/**
+ * Registers a DISCORD destination for the given tenant through
+ * `RegisterNotificationChannelDestinationCommand`, exactly as design.md's
+ * E2E strategy requires — delivery is now fail-closed per tenant (design.md
+ * D1), so every case here needs a registered destination before it can
+ * reach `SENT`/retried `FAILED` at all.
+ */
+async function seedDestination(
+  ctx: E2EContext,
+  tenantId: string,
+): Promise<void> {
+  const commandBus = ctx.app.get(CommandBus);
+  await commandBus.execute<
+    RegisterNotificationChannelDestinationCommand,
+    RegisterNotificationChannelDestinationResult
+  >(
+    new RegisterNotificationChannelDestinationCommand({
+      tenantId,
+      channel: 'DISCORD',
+      webhookUrl: DESTINATION_WEBHOOK_URL,
+    }),
+  );
+}
 
 function buildPayload(
   value: Record<string, unknown>,
@@ -160,9 +189,10 @@ describe('Notification Discord delivery (e2e)', () => {
     postSpy.mockRestore();
   });
 
-  it('delivers to Discord and transitions to SENT on a 2xx webhook response', async () => {
+  it('delivers to the tenant-registered Discord destination and transitions to SENT on a 2xx webhook response', async () => {
     postSpy.mockReturnValue(buildSuccessResponse());
     const client = await seedClient(ctx.app);
+    await seedDestination(ctx, client.tenantId);
     const event = buildValidEvent({ tenantId: client.tenantId });
 
     await consumer.handleMessage(buildPayload(event, client.apiKey));
@@ -176,6 +206,7 @@ describe('Notification Discord delivery (e2e)', () => {
     expect(delivered.sentAt).not.toBeNull();
     expect(delivered.failureReason).toBeNull();
     expect(postSpy).toHaveBeenCalledTimes(1);
+    expect(postSpy.mock.calls[0][0]).toBe(DESTINATION_WEBHOOK_URL);
   });
 
   it('retries a transient failure and still reaches SENT on a later attempt', async () => {
@@ -183,6 +214,7 @@ describe('Notification Discord delivery (e2e)', () => {
       .mockReturnValueOnce(throwError(() => buildAxiosError(500)))
       .mockReturnValue(buildSuccessResponse());
     const client = await seedClient(ctx.app);
+    await seedDestination(ctx, client.tenantId);
     const event = buildValidEvent({ tenantId: client.tenantId });
 
     await consumer.handleMessage(buildPayload(event, client.apiKey));
@@ -194,11 +226,13 @@ describe('Notification Discord delivery (e2e)', () => {
 
     expect(delivered.status.value).toBe('SENT');
     expect(postSpy.mock.calls.length).toBeGreaterThan(1);
+    expect(postSpy.mock.calls[0][0]).toBe(DESTINATION_WEBHOOK_URL);
   });
 
   it('retries until exhaustion then transitions to FAILED with a failureReason', async () => {
     postSpy.mockReturnValue(throwError(() => buildAxiosError(500)));
     const client = await seedClient(ctx.app);
+    await seedDestination(ctx, client.tenantId);
     const event = buildValidEvent({ tenantId: client.tenantId });
     const { attempts } = notificationDeliveryQueueConfig();
 
@@ -224,6 +258,7 @@ describe('Notification Discord delivery (e2e)', () => {
     await queue.pause();
     postSpy.mockReturnValue(buildSuccessResponse());
     const client = await seedClient(ctx.app);
+    await seedDestination(ctx, client.tenantId);
     const event = buildValidEvent({ tenantId: client.tenantId });
 
     await consumer.handleMessage(buildPayload(event, client.apiKey));
@@ -263,5 +298,44 @@ describe('Notification Discord delivery (e2e)', () => {
     );
 
     expect(delivered.status.value).toBe('SENT');
+  });
+
+  describe('D1/D3 — fail-closed resolution (spec: notification-delivery)', () => {
+    it('fails closed with DESTINATION_NOT_CONFIGURED and makes no HTTP call when the tenant has no registered destination', async () => {
+      const client = await seedClient(ctx.app);
+      const event = buildValidEvent({ tenantId: client.tenantId });
+
+      await consumer.handleMessage(buildPayload(event, client.apiKey));
+      const delivered = await waitForTerminalStatus(
+        writeRepository,
+        event.tenantId,
+        event.dedupeKey,
+      );
+
+      expect(delivered.status.value).toBe('FAILED');
+      expect(delivered.failureReason?.value).toBe('DESTINATION_NOT_CONFIGURED');
+      expect(postSpy).not.toHaveBeenCalled();
+    });
+
+    it('fails closed with DESTINATION_UNREADABLE and makes no HTTP call when the stored ciphertext is tampered', async () => {
+      const client = await seedClient(ctx.app);
+      await seedDestination(ctx, client.tenantId);
+      await ctx.dataSource.query(
+        'UPDATE notification_channel_destinations SET "encryptedAddress" = $1 WHERE "tenantId" = $2',
+        ['v1:tampered:tampered:tampered', client.tenantId],
+      );
+      const event = buildValidEvent({ tenantId: client.tenantId });
+
+      await consumer.handleMessage(buildPayload(event, client.apiKey));
+      const delivered = await waitForTerminalStatus(
+        writeRepository,
+        event.tenantId,
+        event.dedupeKey,
+      );
+
+      expect(delivered.status.value).toBe('FAILED');
+      expect(delivered.failureReason?.value).toBe('DESTINATION_UNREADABLE');
+      expect(postSpy).not.toHaveBeenCalled();
+    });
   });
 });

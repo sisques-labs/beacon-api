@@ -1,9 +1,9 @@
 import { HttpService } from '@nestjs/axios';
-import { ConfigService } from '@nestjs/config';
 import { AxiosError, AxiosHeaders } from 'axios';
 import { of, throwError } from 'rxjs';
 import { Mocked, vi } from 'vitest';
 
+import { INotificationDeliveryDestination } from '@contexts/notifications/application/ports/notification-delivery-destination.interface';
 import { DiscordWebhookNotificationSenderAdapter } from '@contexts/notifications/infrastructure/adapters/discord-webhook-notification-sender.adapter';
 import { INotificationPrimitives } from '@contexts/notifications/domain/primitives/notification.primitives';
 
@@ -25,6 +25,11 @@ const NOTIFICATION: INotificationPrimitives = {
   updatedAt: new Date('2026-01-01T00:00:00.000Z'),
 };
 
+const DESTINATION: INotificationDeliveryDestination = {
+  url: 'https://discord.com/api/webhooks/123456789012345678/aValidToken',
+  logLabel: 'discord:webhook/123456789012345678',
+};
+
 function buildAxiosError(status: number): AxiosError {
   return new AxiosError(
     `Request failed with status code ${status}`,
@@ -43,25 +48,16 @@ function buildAxiosError(status: number): AxiosError {
 
 describe('DiscordWebhookNotificationSenderAdapter', () => {
   let adapter: DiscordWebhookNotificationSenderAdapter;
-  let configService: Mocked<ConfigService>;
   let httpService: Mocked<HttpService>;
 
   beforeEach(() => {
-    configService = {
-      getOrThrow: vi.fn().mockReturnValue({
-        webhookUrl: 'https://discord.com/api/webhooks/123/abc',
-      }),
-    } as unknown as Mocked<ConfigService>;
     httpService = {
       post: vi.fn(),
     } as unknown as Mocked<HttpService>;
-    adapter = new DiscordWebhookNotificationSenderAdapter(
-      httpService,
-      configService,
-    );
+    adapter = new DiscordWebhookNotificationSenderAdapter(httpService);
   });
 
-  it('posts to the configured webhook and returns success on a 2xx response', async () => {
+  it('posts to the resolved destination URL with a bounded redirect/timeout and returns success on a 2xx response', async () => {
     httpService.post.mockReturnValue(
       of({
         data: null,
@@ -72,13 +68,14 @@ describe('DiscordWebhookNotificationSenderAdapter', () => {
       }),
     );
 
-    const result = await adapter.send(NOTIFICATION);
+    const result = await adapter.send(NOTIFICATION, DESTINATION);
 
     expect(httpService.post).toHaveBeenCalledWith(
-      'https://discord.com/api/webhooks/123/abc',
+      DESTINATION.url,
       expect.objectContaining({
         content: expect.stringContaining(NOTIFICATION.title),
       }),
+      { maxRedirects: 0, timeout: 10000 },
     );
     const body = httpService.post.mock.calls[0][1] as { content: string };
     expect(body.content).toContain(NOTIFICATION.title);
@@ -89,7 +86,7 @@ describe('DiscordWebhookNotificationSenderAdapter', () => {
   it('returns failure with the status code when the response is non-2xx', async () => {
     httpService.post.mockReturnValue(throwError(() => buildAxiosError(500)));
 
-    const result = await adapter.send(NOTIFICATION);
+    const result = await adapter.send(NOTIFICATION, DESTINATION);
 
     expect(result.success).toBe(false);
     expect(result.failureReason).toContain('500');
@@ -100,7 +97,7 @@ describe('DiscordWebhookNotificationSenderAdapter', () => {
       throwError(() => new Error('ECONNREFUSED')),
     );
 
-    const result = await adapter.send(NOTIFICATION);
+    const result = await adapter.send(NOTIFICATION, DESTINATION);
 
     expect(result).toEqual({
       success: false,
@@ -108,13 +105,35 @@ describe('DiscordWebhookNotificationSenderAdapter', () => {
     });
   });
 
-  it('returns failure without calling the webhook when no webhook URL is configured', async () => {
-    configService.getOrThrow.mockReturnValue({ webhookUrl: undefined });
+  it('never logs the destination URL, only the redacted logLabel', async () => {
+    const logSpy = vi.spyOn(
+      adapter['logger'] as { log: (...args: unknown[]) => void },
+      'log',
+    );
+    const errorSpy = vi.spyOn(
+      adapter['logger'] as { error: (...args: unknown[]) => void },
+      'error',
+    );
+    httpService.post.mockReturnValueOnce(
+      of({
+        data: null,
+        status: 204,
+        statusText: 'No Content',
+        headers: {},
+        config: { headers: new AxiosHeaders() },
+      }),
+    );
 
-    const result = await adapter.send(NOTIFICATION);
+    await adapter.send(NOTIFICATION, DESTINATION);
 
-    expect(httpService.post).not.toHaveBeenCalled();
-    expect(result.success).toBe(false);
-    expect(result.failureReason).toBe('DISCORD_WEBHOOK_URL is not configured');
+    const allLoggedText = [...logSpy.mock.calls, ...errorSpy.mock.calls]
+      .flat()
+      .map(String)
+      .join('\n');
+    expect(allLoggedText).not.toContain(DESTINATION.url);
+    expect(allLoggedText).toContain(DESTINATION.logLabel);
+
+    logSpy.mockRestore();
+    errorSpy.mockRestore();
   });
 });
