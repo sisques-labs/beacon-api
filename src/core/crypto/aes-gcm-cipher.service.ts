@@ -23,8 +23,8 @@ const ENVELOPE_PART_COUNT = 4;
  *
  * Core has no notion of "context" — this service knows nothing about
  * `notifications` or any other bounded context. It is wired `@Global` via
- * `CryptoModule` and consumed behind a per-context port (`ISecretCipherPort`)
- * so hexagonal boundaries stay intact.
+ * `CryptoModule` and reached by contexts only via `EncryptSecretCommand` / `DecryptSecretCommand`
+ * behind a per-context port (`ISecretCipherPort`) so boundaries stay intact.
  */
 @Injectable()
 export class AesGcmCipherService {

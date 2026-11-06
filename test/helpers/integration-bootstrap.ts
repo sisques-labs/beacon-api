@@ -7,6 +7,8 @@ import { DataSource } from 'typeorm';
 import { SharedGraphQLModule } from '@sisques-labs/nestjs-kit/graphql';
 
 import { appConfig } from '../../src/core/config/app.config';
+import { cryptoConfig } from '../../src/core/config/crypto.config';
+import { CryptoModule } from '../../src/core/crypto/crypto.module';
 import { bootstrapTestDataSource } from './test-data-source';
 
 const DB_HOST = process.env.DATABASE_HOST ?? 'localhost';
@@ -39,7 +41,7 @@ export async function createIntegrationModule(
     imports: [
       ConfigModule.forRoot({
         isGlobal: true,
-        load: [appConfig],
+        load: [appConfig, cryptoConfig],
       }),
       TypeOrmModule.forRoot({
         type: 'postgres',
@@ -58,6 +60,10 @@ export async function createIntegrationModule(
       }),
       CqrsModule,
       SharedGraphQLModule,
+      // Global in production via CoreModule; registers the Encrypt/DecryptSecret
+      // command handlers that notifications' secret cipher port dispatches to
+      // (CqrsModule above supplies the CommandBus).
+      CryptoModule,
       ...options.imports,
     ],
     providers: options.providers ?? [],
