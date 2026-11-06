@@ -27,7 +27,7 @@ export class ClientsFindAllHandler implements IQueryHandler<
     private readonly readRepository: IClientReadRepository,
   ) {}
 
-  async execute(): Promise<ClientViewModel[]> {
+  async execute(_query: ClientsFindAllQuery): Promise<ClientViewModel[]> {
     this.logger.log('Listing all clients');
     return this.readRepository.findAll();
   }
