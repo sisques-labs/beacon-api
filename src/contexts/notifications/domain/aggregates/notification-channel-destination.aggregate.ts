@@ -1,12 +1,10 @@
-import {
-  BaseAggregate,
-  DateValueObject,
-  UuidValueObject,
-} from '@sisques-labs/nestjs-kit';
+import { BaseAggregate, UuidValueObject } from '@sisques-labs/nestjs-kit';
 
 import { INotificationChannelDestinationEventData } from '@contexts/notifications/domain/events/interfaces/notification-channel-destination-event-data.interface';
 import { NotificationChannelDestinationRegisteredEvent } from '@contexts/notifications/domain/events/notification-channel-destination-registered/notification-channel-destination-registered.event';
 import { NotificationChannelDestinationRotatedEvent } from '@contexts/notifications/domain/events/notification-channel-destination-rotated/notification-channel-destination-rotated.event';
+import { INotificationChannelDestination } from '@contexts/notifications/domain/interfaces/notification-channel-destination.interface';
+import { INotificationChannelDestinationPrimitives } from '@contexts/notifications/domain/primitives/notification-channel-destination.primitives';
 import { EncryptedSecretValueObject } from '@contexts/notifications/domain/value-objects/encrypted-secret/encrypted-secret.value-object';
 import { NotificationChannelValueObject } from '@contexts/notifications/domain/value-objects/notification-channel/notification-channel.value-object';
 
@@ -15,20 +13,7 @@ export class NotificationChannelDestinationAggregate extends BaseAggregate {
   private readonly _channel: NotificationChannelValueObject;
   private _envelope: EncryptedSecretValueObject;
 
-  /**
-   * Props are typed inline (not extracted to `domain/interfaces/`) for this
-   * slice — the formal `INotificationChannelDestination` domain interface
-   * belongs to the dedicated interfaces/primitives/view-model unit, which
-   * will refactor this constructor to accept it without changing behavior.
-   */
-  constructor(props: {
-    id: UuidValueObject;
-    tenantId: UuidValueObject;
-    channel: NotificationChannelValueObject;
-    envelope: EncryptedSecretValueObject;
-    createdAt: DateValueObject;
-    updatedAt: DateValueObject;
-  }) {
+  constructor(props: INotificationChannelDestination) {
     super(props.id, props.createdAt, props.updatedAt);
     this._tenantId = props.tenantId;
     this._channel = props.channel;
@@ -62,6 +47,23 @@ export class NotificationChannelDestinationAggregate extends BaseAggregate {
       id: this.id.value,
       tenantId: this._tenantId.value,
       channel: this._channel.value,
+      createdAt: this.createdAt.value,
+      updatedAt: this.updatedAt.value,
+    };
+  }
+
+  /**
+   * Persistence-only shape (Phase 5 mapper). MUST NEVER be used to build a
+   * domain event payload — `register()`/`rotate()` above always call
+   * `toEventData()`, never this method, because the envelope must not leave
+   * the database via Kafka/EventStore (D9).
+   */
+  public toPrimitives(): INotificationChannelDestinationPrimitives {
+    return {
+      id: this.id.value,
+      tenantId: this._tenantId.value,
+      channel: this._channel.value,
+      envelope: this._envelope.value,
       createdAt: this.createdAt.value,
       updatedAt: this.updatedAt.value,
     };
