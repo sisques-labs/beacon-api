@@ -16,10 +16,17 @@ import { NotificationChannelEnum } from '@contexts/notifications/domain/enums/no
  * unauthenticated topic, see design.md decision D3). `deliverableAddress` is
  * accepted here only so a caller-supplied value can be detected, logged, and
  * ignored by the consumer rather than triggering a validation failure.
+ *
+ * `tenantId` is optional and deprecated for one release (design.md D22): the
+ * persistence tenant always comes from the authenticated `x-api-key` header,
+ * never from this field. It is accepted-and-ignored so SDK vNext can keep
+ * sending it against both the Phase A and Phase B servers; a mismatch is
+ * logged as a warning by the consumer, never enforced here.
  */
 export class NotificationIngestDto {
+  @IsOptional()
   @IsUUID()
-  tenantId!: string;
+  tenantId?: string;
 
   @IsUUID()
   recipientUserId!: string;

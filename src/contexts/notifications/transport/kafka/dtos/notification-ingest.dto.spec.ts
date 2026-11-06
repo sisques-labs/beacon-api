@@ -53,7 +53,7 @@ describe('NotificationIngestDto', () => {
     expect(errors.map((error) => error.property)).toContain('channel');
   });
 
-  it('fails validation when tenantId is not a UUID', async () => {
+  it('fails validation when a present tenantId is not a UUID', async () => {
     const dto = plainToInstance(NotificationIngestDto, {
       ...VALID_PAYLOAD,
       tenantId: 'not-a-uuid',
@@ -62,5 +62,14 @@ describe('NotificationIngestDto', () => {
     const errors = await validate(dto);
 
     expect(errors.map((error) => error.property)).toContain('tenantId');
+  });
+
+  it('passes validation when tenantId is omitted entirely (design.md D22)', async () => {
+    const { tenantId: _tenantId, ...withoutTenantId } = VALID_PAYLOAD;
+    const dto = plainToInstance(NotificationIngestDto, withoutTenantId);
+
+    const errors = await validate(dto);
+
+    expect(errors).toHaveLength(0);
   });
 });
