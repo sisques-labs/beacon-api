@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 import { IInboundMessage } from '@sisques-labs/nestjs-kit/messaging';
 import { Mocked, vi } from 'vitest';
@@ -15,12 +16,15 @@ const VALID_PAYLOAD = {
   dedupeKey: 'gardenia:plant:1:watered',
 };
 
-function buildInboundMessage(value: string | null): IInboundMessage {
+function buildInboundMessage(
+  value: string | null,
+  headers: Record<string, string> = {},
+): IInboundMessage {
   return {
     topic: 'beacon-api.notification-requests',
     partition: 0,
     key: null,
-    headers: {},
+    headers,
     value,
   };
 }
@@ -106,6 +110,39 @@ describe('NotificationIngestConsumer', () => {
       );
 
       expect(commandBus.execute).toHaveBeenCalledTimes(1);
+    });
+
+    it('logs a readiness warning including the tenantId when no x-api-key header is presented', async () => {
+      const warnSpy = vi
+        .spyOn(Logger.prototype, 'warn')
+        .mockImplementation(() => undefined);
+
+      await consumer.handleMessage(
+        buildInboundMessage(JSON.stringify(VALID_PAYLOAD)),
+      );
+
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      const [message] = warnSpy.mock.calls[0] as [string];
+      expect(message).toContain(VALID_PAYLOAD.tenantId);
+      expect(commandBus.execute).toHaveBeenCalledTimes(1);
+
+      warnSpy.mockRestore();
+    });
+
+    it('does not warn when an x-api-key header is presented', async () => {
+      const warnSpy = vi
+        .spyOn(Logger.prototype, 'warn')
+        .mockImplementation(() => undefined);
+
+      await consumer.handleMessage(
+        buildInboundMessage(JSON.stringify(VALID_PAYLOAD), {
+          'x-api-key': 'some-key',
+        }),
+      );
+
+      expect(warnSpy).not.toHaveBeenCalled();
+
+      warnSpy.mockRestore();
     });
   });
 });

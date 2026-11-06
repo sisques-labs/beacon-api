@@ -1,4 +1,6 @@
+import { Logger } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
+import { Request } from 'express';
 import { Mocked, vi } from 'vitest';
 
 import { NotificationFindByIdQuery } from '@contexts/notifications/application/queries/notification-find-by-id/notification-find-by-id.query';
@@ -7,6 +9,12 @@ import { NotificationFindByIdRequestDto } from '@contexts/notifications/transpor
 import { NotificationResponseDto } from '@contexts/notifications/transport/graphql/dtos/responses/notification.response.dto';
 import { NotificationGraphQLMapper } from '@contexts/notifications/transport/graphql/mappers/notification.mapper';
 import { NotificationQueriesResolver } from '@contexts/notifications/transport/graphql/resolvers/queries/notification-queries.resolver';
+
+function buildGraphQLContext(apiKey?: string): { req: Request } {
+  return {
+    req: { headers: apiKey ? { 'x-api-key': apiKey } : {} } as Request,
+  };
+}
 
 function buildViewModel(): NotificationViewModel {
   return new NotificationViewModel({
@@ -41,6 +49,10 @@ describe('NotificationQueriesResolver', () => {
     resolver = new NotificationQueriesResolver(queryBus, mapper);
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('dispatches NotificationFindByIdQuery and maps the result', async () => {
     const viewModel = buildViewModel();
     const dto = new NotificationResponseDto();
@@ -48,12 +60,47 @@ describe('NotificationQueriesResolver', () => {
     queryBus.execute.mockResolvedValue(viewModel);
     mapper.toResponseDtoFromViewModel.mockReturnValue(dto);
 
-    const result = await resolver.notificationFindById(input);
+    const result = await resolver.notificationFindById(
+      input,
+      buildGraphQLContext('some-key'),
+    );
 
     expect(queryBus.execute).toHaveBeenCalledWith(
       new NotificationFindByIdQuery({ id: viewModel.id }),
     );
     expect(mapper.toResponseDtoFromViewModel).toHaveBeenCalledWith(viewModel);
     expect(result).toBe(dto);
+  });
+
+  it('logs a readiness warning when called with no x-api-key header', async () => {
+    const warnSpy = vi
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    const viewModel = buildViewModel();
+    const input: NotificationFindByIdRequestDto = { id: viewModel.id };
+    queryBus.execute.mockResolvedValue(viewModel);
+    mapper.toResponseDtoFromViewModel.mockReturnValue(
+      new NotificationResponseDto(),
+    );
+
+    await resolver.notificationFindById(input, buildGraphQLContext());
+
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not warn when called with an x-api-key header', async () => {
+    const warnSpy = vi
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    const viewModel = buildViewModel();
+    const input: NotificationFindByIdRequestDto = { id: viewModel.id };
+    queryBus.execute.mockResolvedValue(viewModel);
+    mapper.toResponseDtoFromViewModel.mockReturnValue(
+      new NotificationResponseDto(),
+    );
+
+    await resolver.notificationFindById(input, buildGraphQLContext('some-key'));
+
+    expect(warnSpy).not.toHaveBeenCalled();
   });
 });
