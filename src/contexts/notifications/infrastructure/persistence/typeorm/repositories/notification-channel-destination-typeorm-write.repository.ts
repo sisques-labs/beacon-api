@@ -6,12 +6,15 @@ import {
   PaginatedResult,
 } from '@sisques-labs/nestjs-kit';
 import { applyCriteriaToQueryBuilder } from '@sisques-labs/nestjs-kit/typeorm';
-import { Repository } from 'typeorm';
+import { QueryFailedError, Repository } from 'typeorm';
 
 import { NotificationChannelDestinationAggregate } from '@contexts/notifications/domain/aggregates/notification-channel-destination.aggregate';
+import { DestinationAlreadyExistsException } from '@contexts/notifications/domain/exceptions/destination-already-exists.exception';
 import { INotificationChannelDestinationWriteRepository } from '@contexts/notifications/domain/repositories/write/notification-channel-destination-write.repository';
 import { NotificationChannelDestinationEntity } from '@contexts/notifications/infrastructure/persistence/typeorm/entities/notification-channel-destination.entity';
 import { NotificationChannelDestinationTypeormMapper } from '@contexts/notifications/infrastructure/persistence/typeorm/mappers/notification-channel-destination-typeorm.mapper';
+
+const UNIQUE_VIOLATION_CODE = '23505';
 
 @Injectable()
 export class NotificationChannelDestinationTypeormWriteRepository
@@ -66,11 +69,29 @@ export class NotificationChannelDestinationTypeormWriteRepository
     aggregate: NotificationChannelDestinationAggregate,
   ): Promise<NotificationChannelDestinationAggregate> {
     const entity = this.mapper.toEntity(aggregate);
-    const saved = await this.repository.save(entity);
-    return this.mapper.toAggregate(saved);
+
+    try {
+      const saved = await this.repository.save(entity);
+      return this.mapper.toAggregate(saved);
+    } catch (error) {
+      if (this.isUniqueViolation(error)) {
+        throw new DestinationAlreadyExistsException(
+          aggregate.tenantId.value,
+          aggregate.channel.value,
+        );
+      }
+      throw error;
+    }
   }
 
   async delete(id: string): Promise<void> {
     await this.repository.delete(id);
+  }
+
+  private isUniqueViolation(error: unknown): boolean {
+    return (
+      error instanceof QueryFailedError &&
+      (error as unknown as { code?: string }).code === UNIQUE_VIOLATION_CODE
+    );
   }
 }

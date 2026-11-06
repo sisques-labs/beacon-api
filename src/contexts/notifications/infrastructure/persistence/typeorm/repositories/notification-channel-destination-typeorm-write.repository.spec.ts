@@ -1,8 +1,9 @@
 import { Mocked, vi } from 'vitest';
-import { Repository } from 'typeorm';
+import { QueryFailedError, Repository } from 'typeorm';
 
 import { NotificationChannelDestinationAggregate } from '@contexts/notifications/domain/aggregates/notification-channel-destination.aggregate';
 import { NotificationChannelDestinationBuilder } from '@contexts/notifications/domain/builders/notification-channel-destination.builder';
+import { DestinationAlreadyExistsException } from '@contexts/notifications/domain/exceptions/destination-already-exists.exception';
 import { NotificationChannelEnum } from '@contexts/notifications/domain/enums/notification-channel.enum';
 import { NotificationChannelDestinationEntity } from '@contexts/notifications/infrastructure/persistence/typeorm/entities/notification-channel-destination.entity';
 import { NotificationChannelDestinationTypeormMapper } from '@contexts/notifications/infrastructure/persistence/typeorm/mappers/notification-channel-destination-typeorm.mapper';
@@ -116,6 +117,48 @@ describe('NotificationChannelDestinationTypeormWriteRepository', () => {
       expect(mapper.toEntity).toHaveBeenCalledWith(aggregate);
       expect(ormRepository.save).toHaveBeenCalledWith(entity);
       expect(result).toBe(aggregate);
+    });
+  });
+
+  describe('save (unique violation)', () => {
+    it('translates a Postgres 23505 into DestinationAlreadyExistsException', async () => {
+      const aggregate = buildAggregate();
+      mapper.toEntity.mockReturnValue(
+        new NotificationChannelDestinationEntity(),
+      );
+      ormRepository.save.mockRejectedValue(
+        new QueryFailedError('INSERT', [], {
+          code: '23505',
+        } as unknown as Error),
+      );
+
+      await expect(repository.save(aggregate)).rejects.toBeInstanceOf(
+        DestinationAlreadyExistsException,
+      );
+    });
+
+    it('rethrows a QueryFailedError with another code unchanged', async () => {
+      const aggregate = buildAggregate();
+      const other = new QueryFailedError('INSERT', [], {
+        code: '23502',
+      } as unknown as Error);
+      mapper.toEntity.mockReturnValue(
+        new NotificationChannelDestinationEntity(),
+      );
+      ormRepository.save.mockRejectedValue(other);
+
+      await expect(repository.save(aggregate)).rejects.toBe(other);
+    });
+
+    it('rethrows a non-database error unchanged', async () => {
+      const aggregate = buildAggregate();
+      const unexpected = new Error('boom');
+      mapper.toEntity.mockReturnValue(
+        new NotificationChannelDestinationEntity(),
+      );
+      ormRepository.save.mockRejectedValue(unexpected);
+
+      await expect(repository.save(aggregate)).rejects.toBe(unexpected);
     });
   });
 
