@@ -133,6 +133,45 @@ describe('Notification creation (e2e)', () => {
       const res = await gql(ctx.app, CREATE_MUTATION, { input: payload });
 
       expect(res.body.errors).toBeDefined();
+      expect(res.body.errors[0].extensions?.originalError?.statusCode).toBe(
+        401,
+      );
+      expect(await countRows()).toBe(0);
+    });
+
+    it('rejects an unknown API key with a GraphQL 401 error and creates nothing', async () => {
+      const payload = buildRestPayload();
+
+      const res = await gql(
+        ctx.app,
+        CREATE_MUTATION,
+        { input: payload },
+        { 'x-api-key': UNKNOWN_API_KEY },
+      );
+
+      expect(res.body.errors).toBeDefined();
+      expect(res.body.errors[0].extensions?.originalError?.statusCode).toBe(
+        401,
+      );
+      expect(await countRows()).toBe(0);
+    });
+
+    it('rejects a revoked API key with a GraphQL 401 error and creates nothing', async () => {
+      const client = await seedClient(ctx.app);
+      await revokeClient(ctx.app, client.id);
+      const payload = buildRestPayload();
+
+      const res = await gql(
+        ctx.app,
+        CREATE_MUTATION,
+        { input: payload },
+        { 'x-api-key': client.apiKey },
+      );
+
+      expect(res.body.errors).toBeDefined();
+      expect(res.body.errors[0].extensions?.originalError?.statusCode).toBe(
+        401,
+      );
       expect(await countRows()).toBe(0);
     });
   });
