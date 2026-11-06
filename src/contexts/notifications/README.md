@@ -3,6 +3,33 @@
 The first bounded context in this service. It defines the pattern every
 subsequent context follows — see `.claude/skills/architecture/SKILL.md`.
 
+## Per-client Discord webhooks and API keys (Phase A — in progress)
+
+`openspec/changes/per-client-discord-webhook/design.md` replaces the single
+global `DISCORD_WEBHOOK_URL` with a per-tenant, encrypted destination and
+per-client API keys, rolled out in two phases (design.md "Migration /
+Rollout"). **This service is currently in Phase A:**
+
+- **Live and key-guarded**: registering and reading a tenant's own Discord
+  destination — `PUT`/`GET /api/v1/notification-destinations/:channel` and
+  the `notificationChannelDestinationRegister`/`FindByChannel` GraphQL
+  operations, all behind `ClientApiKeyGuard` (`x-api-key`, see "Destination
+  registration" below).
+- **Still open (unguarded), with a readiness warning**: notification
+  creation (`POST /notifications`, `notificationCreate`), Kafka ingestion,
+  and `findById` (`GET /notifications/:id`, `notificationFindById`) all
+  still accept requests with no `x-api-key` and still read `tenantId` from
+  the request body/event, unchanged. Each of these five call sites now logs
+  a warning (never the key itself) when no `x-api-key` is presented, so ops
+  can see which tenants still need a key issued before Phase B turns
+  enforcement on — see `infrastructure/logging/api-key-readiness-warning.ts`.
+- **Delivery still reads `DISCORD_WEBHOOK_URL`** (see "Delivery" below) —
+  per-tenant destination resolution at send time is Phase B.
+- Client keys are minted with the `clients` context's CLI —
+  `pnpm client:create --name <n> --tenant-id <existing>` — see
+  `src/contexts/clients/README.md` for the full `client:*` command
+  reference (create/rotate/revoke/list).
+
 ## Current state (persistence + Kafka ingestion + synchronous REST/GraphQL creation + durable, retrying Discord delivery + get-by-id query)
 
 `NotificationAggregate` is persistable, ingestible from Kafka, creatable
@@ -13,7 +40,7 @@ retry/backoff, and queryable by id.
 
 - `NotificationAggregate` — fields: `tenantId`, `recipientUserId`, `channel`
   (`DISCORD | EMAIL | PUSH`), `status` (`PENDING | SENT | FAILED | CANCELLED
-  | READ`), `title`, `body`, `sourceService`, `dedupeKey`, plus terminal
+| READ`), `title`, `body`, `sourceService`, `dedupeKey`, plus terminal
   timestamps (`sentAt`, `readAt`, `cancelledAt`) and `failureReason`.
 - Status transitions are enforced by `assertTransition()`; an invalid
   transition raises `InvalidNotificationStatusTransitionException`.
@@ -40,7 +67,7 @@ retry/backoff, and queryable by id.
   `@KafkaMessageHandler`-decorated handler on the kit's declarative inbound
   Kafka consumer (`@sisques-labs/nestjs-kit/messaging`, `MessagingModule`).
   The topic/group are registered via `MessagingModule.forRoot({
-  inboundConsumers })` in `core.module.ts`, gated on `KAFKA_INGEST_ENABLED` —
+inboundConsumers })` in `core.module.ts`, gated on `KAFKA_INGEST_ENABLED` —
   independent from the outbound forwarder's `KAFKA_ENABLED`; broker
   connection details (brokers/clientId/SSL/SASL) are reused from the
   existing `kafka` config. Topic/group come from `KAFKA_INGEST_TOPIC` /
@@ -82,7 +109,7 @@ single-sourced in the application layer regardless of entry point (see
   `CreateNotificationCommand` via `CommandBus`, responds `201 Created` +
   `NotificationCreateResponseDto { id }`.
 - **GraphQL**: `mutation { notificationCreate(input: { ... }) { success id
-  message } }` (`NotificationMutationsResolver`, the service's first mutation
+message } }` (`NotificationMutationsResolver`, the service's first mutation
   resolver) — validates a mirroring `@InputType()` DTO, dispatches the same
   command, maps the result through the global
   `MutationResponseGraphQLMapper` (`success`, `id`, `message`).
