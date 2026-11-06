@@ -7,19 +7,16 @@ export interface MissingGuardClassViolation {
 type AnyClass = new (...args: never[]) => unknown;
 
 /**
- * Phase A allowlist (design.md D13/D21): the transport classes this scan
- * MUST NOT flag yet, because Phase B — not this change — wires
- * `ClientApiKeyGuard` into them:
- * - `NotificationQueriesResolver` — `findById` moves behind the guard in
- *   task 29.3.
- * `NotificationController` and `NotificationMutationsResolver` were removed
- * from this list in task 28.2, once `@UseGuards(ClientApiKeyGuard)` was
- * added to both. This list MUST be empty once Phase B finishes (task
- * 29.3's reminder note).
+ * Phase A allowlist (design.md D13/D21) — now EMPTY. `NotificationController`
+ * and `NotificationMutationsResolver` were removed in task 28.2, and
+ * `NotificationQueriesResolver` (`findById`) was removed in task 29.3, once
+ * `@UseGuards(ClientApiKeyGuard)` was added to all three. Every
+ * controller/resolver under `notifications/transport/` now carries the
+ * class-level guard, and the reflection spec's own scan enforces it going
+ * forward — this constant is kept (rather than deleted) as the documented
+ * extension point for a future Phase A-style rollout.
  */
-export const NOTIFICATIONS_PHASE_A_GUARD_ALLOWLIST = [
-  'NotificationQueriesResolver',
-] as const;
+export const NOTIFICATIONS_PHASE_A_GUARD_ALLOWLIST = [] as const;
 
 /**
  * D21 safety net (replaces the superseded D11 method-level reflection check

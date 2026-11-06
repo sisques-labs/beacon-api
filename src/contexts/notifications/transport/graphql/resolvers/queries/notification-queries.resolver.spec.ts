@@ -1,25 +1,23 @@
-import { Logger } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
-import { Request } from 'express';
 import { Mocked, vi } from 'vitest';
 
 import { NotificationFindByIdQuery } from '@contexts/notifications/application/queries/notification-find-by-id/notification-find-by-id.query';
+import { IAuthenticatedClient } from '@contexts/notifications/application/ports/authenticated-client.interface';
 import { NotificationViewModel } from '@contexts/notifications/domain/view-models/notification.view-model';
 import { NotificationFindByIdRequestDto } from '@contexts/notifications/transport/graphql/dtos/requests/notification-find-by-id.request.dto';
 import { NotificationResponseDto } from '@contexts/notifications/transport/graphql/dtos/responses/notification.response.dto';
 import { NotificationGraphQLMapper } from '@contexts/notifications/transport/graphql/mappers/notification.mapper';
 import { NotificationQueriesResolver } from '@contexts/notifications/transport/graphql/resolvers/queries/notification-queries.resolver';
 
-function buildGraphQLContext(apiKey?: string): { req: Request } {
-  return {
-    req: { headers: apiKey ? { 'x-api-key': apiKey } : {} } as Request,
-  };
-}
+const AUTHENTICATED_CLIENT: IAuthenticatedClient = {
+  clientId: '99999999-9999-4999-8999-999999999999',
+  tenantId: '22222222-2222-4222-8222-222222222222',
+};
 
 function buildViewModel(): NotificationViewModel {
   return new NotificationViewModel({
     id: '11111111-1111-4111-8111-111111111111',
-    tenantId: '22222222-2222-4222-8222-222222222222',
+    tenantId: AUTHENTICATED_CLIENT.tenantId,
     recipientUserId: '33333333-3333-4333-8333-333333333333',
     channel: 'DISCORD',
     status: 'PENDING',
@@ -53,7 +51,7 @@ describe('NotificationQueriesResolver', () => {
     vi.restoreAllMocks();
   });
 
-  it('dispatches NotificationFindByIdQuery and maps the result', async () => {
+  it('dispatches NotificationFindByIdQuery with the requested id and the authenticated tenant (D25) and maps the result', async () => {
     const viewModel = buildViewModel();
     const dto = new NotificationResponseDto();
     const input: NotificationFindByIdRequestDto = { id: viewModel.id };
@@ -62,45 +60,16 @@ describe('NotificationQueriesResolver', () => {
 
     const result = await resolver.notificationFindById(
       input,
-      buildGraphQLContext('some-key'),
+      AUTHENTICATED_CLIENT,
     );
 
     expect(queryBus.execute).toHaveBeenCalledWith(
-      new NotificationFindByIdQuery({ id: viewModel.id }),
+      new NotificationFindByIdQuery({
+        id: viewModel.id,
+        tenantId: AUTHENTICATED_CLIENT.tenantId,
+      }),
     );
     expect(mapper.toResponseDtoFromViewModel).toHaveBeenCalledWith(viewModel);
     expect(result).toBe(dto);
-  });
-
-  it('logs a readiness warning when called with no x-api-key header', async () => {
-    const warnSpy = vi
-      .spyOn(Logger.prototype, 'warn')
-      .mockImplementation(() => undefined);
-    const viewModel = buildViewModel();
-    const input: NotificationFindByIdRequestDto = { id: viewModel.id };
-    queryBus.execute.mockResolvedValue(viewModel);
-    mapper.toResponseDtoFromViewModel.mockReturnValue(
-      new NotificationResponseDto(),
-    );
-
-    await resolver.notificationFindById(input, buildGraphQLContext());
-
-    expect(warnSpy).toHaveBeenCalledTimes(1);
-  });
-
-  it('does not warn when called with an x-api-key header', async () => {
-    const warnSpy = vi
-      .spyOn(Logger.prototype, 'warn')
-      .mockImplementation(() => undefined);
-    const viewModel = buildViewModel();
-    const input: NotificationFindByIdRequestDto = { id: viewModel.id };
-    queryBus.execute.mockResolvedValue(viewModel);
-    mapper.toResponseDtoFromViewModel.mockReturnValue(
-      new NotificationResponseDto(),
-    );
-
-    await resolver.notificationFindById(input, buildGraphQLContext('some-key'));
-
-    expect(warnSpy).not.toHaveBeenCalled();
   });
 });
