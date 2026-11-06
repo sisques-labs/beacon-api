@@ -32,6 +32,7 @@ describe('NotificationTypeormWriteRepository', () => {
     ormRepository = {
       findOne: vi.fn(),
       save: vi.fn(),
+      update: vi.fn(),
       delete: vi.fn(),
       createQueryBuilder: vi.fn(),
     } as unknown as Mocked<Repository<NotificationEntity>>;
@@ -126,6 +127,38 @@ describe('NotificationTypeormWriteRepository', () => {
       ormRepository.save.mockRejectedValue(unexpected);
 
       await expect(repository.save(aggregate)).rejects.toBe(unexpected);
+    });
+  });
+
+  describe('updateIfExists', () => {
+    it('issues a straight UPDATE (never an insert) and returns true when a row was affected', async () => {
+      const aggregate = buildAggregate();
+      const entity = new NotificationEntity();
+      entity.id = '11111111-1111-4111-8111-111111111111';
+      entity.status = 'FAILED';
+      mapper.toEntity.mockReturnValue(entity);
+      ormRepository.update.mockResolvedValue({ affected: 1 } as never);
+
+      const result = await repository.updateIfExists(aggregate);
+
+      expect(ormRepository.update).toHaveBeenCalledWith(
+        { id: entity.id },
+        expect.objectContaining({ status: 'FAILED' }),
+      );
+      expect(ormRepository.update.mock.calls[0][1]).not.toHaveProperty('id');
+      expect(result).toBe(true);
+    });
+
+    it('returns false without inserting when no row was affected (row no longer exists)', async () => {
+      const aggregate = buildAggregate();
+      const entity = new NotificationEntity();
+      entity.id = '11111111-1111-4111-8111-111111111111';
+      mapper.toEntity.mockReturnValue(entity);
+      ormRepository.update.mockResolvedValue({ affected: 0 } as never);
+
+      const result = await repository.updateIfExists(aggregate);
+
+      expect(result).toBe(false);
     });
   });
 
