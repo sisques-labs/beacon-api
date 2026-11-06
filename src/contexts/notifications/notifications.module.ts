@@ -14,6 +14,8 @@ import { DeliverNotificationOnCreatedHandler } from '@contexts/notifications/app
 import { NOTIFICATION_DELIVERY_QUEUE_PORT } from '@contexts/notifications/application/ports/notification-delivery-queue.port';
 import { NOTIFICATION_SENDER_PORT } from '@contexts/notifications/application/ports/notification-sender.port';
 import { SECRET_CIPHER_PORT } from '@contexts/notifications/application/ports/secret-cipher.port';
+import { NotificationChannelDestinationFindByCriteriaHandler } from '@contexts/notifications/application/queries/notification-channel-destination-find-by-criteria/notification-channel-destination-find-by-criteria.handler';
+import { NotificationChannelDestinationFindByIdHandler } from '@contexts/notifications/application/queries/notification-channel-destination-find-by-id/notification-channel-destination-find-by-id.handler';
 import { NotificationFindByIdHandler } from '@contexts/notifications/application/queries/notification-find-by-id/notification-find-by-id.handler';
 import { AssertNotificationViewModelExistsService } from '@contexts/notifications/application/services/read/assert-notification-view-model-exists/assert-notification-view-model-exists.service';
 import { EncryptChannelDestinationSecretService } from '@contexts/notifications/application/services/write/encrypt-channel-destination-secret/encrypt-channel-destination-secret.service';
@@ -51,7 +53,11 @@ const COMMAND_HANDLERS = [
   RegisterNotificationChannelDestinationCommandHandler,
 ];
 const EVENT_HANDLERS = [DeliverNotificationOnCreatedHandler];
-const QUERY_HANDLERS = [NotificationFindByIdHandler];
+const QUERY_HANDLERS = [
+  NotificationFindByIdHandler,
+  NotificationChannelDestinationFindByIdHandler,
+  NotificationChannelDestinationFindByCriteriaHandler,
+];
 const APPLICATION_SERVICES = [
   AssertNotificationViewModelExistsService,
   AssertNotificationAggregateExistsService,

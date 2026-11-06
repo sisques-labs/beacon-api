@@ -10,6 +10,7 @@ import { FindOptionsSelect, Repository } from 'typeorm';
 
 import { INotificationChannelDestinationReadRepository } from '@contexts/notifications/domain/repositories/read/notification-channel-destination-read.repository';
 import { NotificationChannelDestinationViewModel } from '@contexts/notifications/domain/view-models/notification-channel-destination.view-model';
+import { assertNotificationChannelDestinationCriteria } from '@contexts/notifications/infrastructure/persistence/typeorm/criteria/notification-channel-destination-criteria.guard';
 import { NotificationChannelDestinationEntity } from '@contexts/notifications/infrastructure/persistence/typeorm/entities/notification-channel-destination.entity';
 import { NotificationChannelDestinationTypeormMapper } from '@contexts/notifications/infrastructure/persistence/typeorm/mappers/notification-channel-destination-typeorm.mapper';
 
@@ -30,8 +31,10 @@ import { NotificationChannelDestinationTypeormMapper } from '@contexts/notificat
  * - Code that needs the secret (delivery) must go through the write
  *   repository and the aggregate, never through this one.
  * - `select` limits what is returned, not what can be filtered or sorted on.
- *   Do not expose `Criteria` for this aggregate over the API without a field
- *   allowlist, or `encryptedAddress` could be probed through `where`/`orderBy`.
+ *   That is guarded separately: `findByCriteria` first runs
+ *   `assertNotificationChannelDestinationCriteria`, which rejects any filter or
+ *   sort field outside the shared allowlist (`encryptedAddress` is never in
+ *   it), so the secret column cannot be probed through `where`/`orderBy`.
  * - `METADATA_SELECT_ALIASED` is the same list prefixed with the query builder
  *   alias, used by `findByCriteria`.
  */
@@ -70,20 +73,10 @@ export class NotificationChannelDestinationTypeormReadRepository
     return entity ? this.mapper.toViewModel(entity) : null;
   }
 
-  async findByTenantAndChannel(
-    tenantId: string,
-    channel: string,
-  ): Promise<NotificationChannelDestinationViewModel | null> {
-    const entity = await this.repository.findOne({
-      where: { tenantId, channel },
-      select: METADATA_SELECT,
-    });
-    return entity ? this.mapper.toViewModel(entity) : null;
-  }
-
   async findByCriteria(
     criteria: Criteria,
   ): Promise<PaginatedResult<NotificationChannelDestinationViewModel>> {
+    assertNotificationChannelDestinationCriteria(criteria);
     const { page, limit, skip } = await this.calculatePagination(criteria);
     const qb = applyCriteriaToQueryBuilder(
       this.repository
