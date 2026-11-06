@@ -9,6 +9,8 @@ import { ClientCreatedEvent } from '@contexts/clients/domain/events/client-creat
 import { ClientRevokedEvent } from '@contexts/clients/domain/events/client-revoked/client-revoked.event';
 import { IClientEventData } from '@contexts/clients/domain/events/interfaces/client-event-data.interface';
 import { ClientRevokedException } from '@contexts/clients/domain/exceptions/client-revoked.exception';
+import { IClient } from '@contexts/clients/domain/interfaces/client.interface';
+import { IClientPrimitives } from '@contexts/clients/domain/primitives/client.primitives';
 import { ApiKeyIdValueObject } from '@contexts/clients/domain/value-objects/api-key-id/api-key-id.value-object';
 import { ApiKeySecretHashValueObject } from '@contexts/clients/domain/value-objects/api-key-secret-hash/api-key-secret-hash.value-object';
 import { ClientNameValueObject } from '@contexts/clients/domain/value-objects/client-name/client-name.value-object';
@@ -21,25 +23,7 @@ export class ClientAggregate extends BaseAggregate {
   private _apiKeyRotatedAt: DateValueObject | null;
   private _revokedAt: DateValueObject | null;
 
-  /**
-   * Props are typed inline (not extracted to `domain/interfaces/`) for this
-   * slice — the formal `IClient` domain interface belongs to the dedicated
-   * interfaces/primitives/view-model unit (Phase 10), which will refactor
-   * this constructor to accept it without changing behavior (same forward
-   * reference as the Phase 3 `NotificationChannelDestinationAggregate`
-   * precedent).
-   */
-  constructor(props: {
-    id: UuidValueObject;
-    tenantId: UuidValueObject;
-    name: ClientNameValueObject;
-    apiKeyId: ApiKeyIdValueObject;
-    apiKeySecretHash: ApiKeySecretHashValueObject;
-    apiKeyRotatedAt: DateValueObject | null;
-    revokedAt: DateValueObject | null;
-    createdAt: DateValueObject;
-    updatedAt: DateValueObject;
-  }) {
+  constructor(props: IClient) {
     super(props.id, props.createdAt, props.updatedAt);
     this._tenantId = props.tenantId;
     this._name = props.name;
@@ -85,6 +69,27 @@ export class ClientAggregate extends BaseAggregate {
         this.toEventData(),
       ),
     );
+  }
+
+  /**
+   * Persistence-only shape (Phase 11 mapper). MUST NEVER be used to build a
+   * domain event payload — `create()`/`rotateApiKey()`/`revoke()` above
+   * always call `toEventData()`, never this method, because the api key
+   * secret hash must not leave the database via Kafka/EventStore (D15,
+   * mirrors D9).
+   */
+  public toPrimitives(): IClientPrimitives {
+    return {
+      id: this.id.value,
+      tenantId: this._tenantId.value,
+      name: this._name.value,
+      apiKeyId: this._apiKeyId.value,
+      apiKeySecretHash: this._apiKeySecretHash.value,
+      apiKeyRotatedAt: this._apiKeyRotatedAt?.value ?? null,
+      revokedAt: this._revokedAt?.value ?? null,
+      createdAt: this.createdAt.value,
+      updatedAt: this.updatedAt.value,
+    };
   }
 
   private assertNotRevoked(): void {
