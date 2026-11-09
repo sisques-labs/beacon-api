@@ -48,11 +48,11 @@ importers:
         specifier: 11.2.8
         version: 11.2.8(@nestjs/common@11.2.8(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@11.2.8)(supports-color@8.1.1)
       '@nestjs/swagger':
-        specifier: 11.4.7
-        version: 11.4.7(@nestjs/common@11.2.8(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@11.2.8)(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)
+        specifier: 11.4.8
+        version: 11.4.8(@nestjs/common@11.2.8(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@11.2.8)(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)
       '@nestjs/terminus':
         specifier: 12.1.0
-        version: 12.1.0(dc0134d0f1edbdde1e495e195773e268)
+        version: 12.1.0(d47845431f4f4f7bbcd6b12aae8f52ab)
       '@nestjs/typeorm':
         specifier: 12.0.2
         version: 12.0.2(@nestjs/common@11.2.8(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@11.2.8)(reflect-metadata@0.2.2)(rxjs@7.8.2)(typeorm@1.1.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.22)(@types/node@24.19.2)(typescript@6.0.3)))
@@ -869,8 +869,8 @@ packages:
     resolution: {integrity: sha512-Z7C/xXCiGWsg0KuKsHTKJxbWhpI3Vs5GwLfOean7MGyVFGqdRgBbAjOCh6u4bbjPc/8MJ2pZmK/0DLdCbivLDA==}
     engines: {node: '>=8'}
 
-  '@microsoft/tsdoc@0.16.0':
-    resolution: {integrity: sha512-xgAyonlVVS+q7Vc7qLW0UrJU7rSFcETRWsqdXZtjzRU8dF+6CkozTK4V4y1LwOX7j8r/vHphjDeMeGI4tNGeGA==}
+  '@microsoft/tsdoc@0.17.1':
+    resolution: {integrity: sha512-VHyYyyoH63jFoO3shpw9Zfijk5v/9p/VrClW35z0/q6ooK7sSmxpzOkS4iZPxs3vO4XtBW4H38HRAKkAMIK7DA==}
 
   '@modelcontextprotocol/sdk@1.32.2':
     resolution: {integrity: sha512-SWsVtH/0vULSQStoZ6xxH2K09Li8fXYTMC64ZeogCdpZ3XSi1eCPOByV1OpuJxuI3OcmHhosDWYyii07tpPsLw==}
@@ -1103,8 +1103,8 @@ packages:
       prettier:
         optional: true
 
-  '@nestjs/swagger@11.4.7':
-    resolution: {integrity: sha512-QyDYnmfP4IRucgmtQxMqzgRBdWtjFoDp8eFvvgf92+3wdLCL+Q0xOFO1948j/ntW/Wi7qT2dyck6ka8ADzPWQQ==}
+  '@nestjs/swagger@11.4.8':
+    resolution: {integrity: sha512-5Vd4/dPvrWCSRTjrXsfoemir9Mva1Pg5hZiUQ80+9mDkxlJBpK2Lpn4OVfM4g+TJeQwIwNgSHC47B5em75Jn3g==}
     peerDependencies:
       '@fastify/static': ^8.0.0 || ^9.0.0 || ^10.0.0
       '@nestjs/common': ^11.0.1
@@ -2721,6 +2721,9 @@ packages:
   argparse@2.0.1:
     resolution: {integrity: sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==}
 
+  argparse@3.0.4:
+    resolution: {integrity: sha512-fwWK3Zq22l4XJJjx5mcBHGikIk+hJqO+32dPm0Jur7+rtG5x1scOjSfdT9ZKeWHPpsya/l0HHK4tDImBkTrtvA==}
+
   array-flatten@1.1.1:
     resolution: {integrity: sha512-PCVAQswWemu6UdxsDFFX/+gVeYqKAod3D3UVm91jHwynguOwAvYPhx8nNlM++NqRcK6CxxpUafjmhIdKiHibqg==}
 
@@ -3897,8 +3900,8 @@ packages:
     resolution: {integrity: sha512-SFNOvSJ+Dgf/9An904Yx+CgSlIPCkIpao4qo51lpee25TIRejdH3rhR4EZMGoNx3/TP3O+wzWuiTFl4sqbltzA==}
     hasBin: true
 
-  js-yaml@5.3.0:
-    resolution: {integrity: sha512-muutsYr+e2+d3rTgUGslq5rxbBlUy3cJ61IsHag2QNDQV+7zXWjkUpmALIajhrlLlrgRUiymj6U3zUr/TMK84Q==}
+  js-yaml@5.5.0:
+    resolution: {integrity: sha512-paNr4LFIFPjeeSmwNYdrb8FafLLG/Cr2Af3GjbsHJ5CxIjH4r0c2emlmRdAtpPAieP1gRVzk6buBbVP5gBMGAg==}
     hasBin: true
 
   json-bigint@1.0.0:
@@ -4955,8 +4958,8 @@ packages:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
     engines: {node: '>= 0.4'}
 
-  swagger-ui-dist@5.32.13:
-    resolution: {integrity: sha512-qQobzb3DeC2LeK0j3E8812Ef4aIq1y9flJxvZkimkqUC/w4u7wS+yCc+VakqGJLweUUBrI24effhwo8OsAvNAw==}
+  swagger-ui-dist@5.34.1:
+    resolution: {integrity: sha512-VSr8fXfI93obYaQicLJbLUKGRxDojj/SfRJDDLCioGTUBj4BK/Nj4eE9jCeCAnJxVLi7iS+08PbiZLyrQKBkJQ==}
 
   symbol-observable@1.2.0:
     resolution: {integrity: sha512-e900nM8RRtGhlV36KGEU9k65K3mPb1WV70OdjfxlG2EAuM1noi/E/BaW/uMhL7bPEssK8QV57vN3esixjUvcXQ==}
@@ -6208,7 +6211,7 @@ snapshots:
 
   '@lukeed/csprng@1.1.0': {}
 
-  '@microsoft/tsdoc@0.16.0': {}
+  '@microsoft/tsdoc@0.17.1': {}
 
   '@modelcontextprotocol/sdk@1.32.2(supports-color@8.1.1)(zod@4.6.7)':
     dependencies:
@@ -6440,22 +6443,22 @@ snapshots:
     transitivePeerDependencies:
       - chokidar
 
-  '@nestjs/swagger@11.4.7(@nestjs/common@11.2.8(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@11.2.8)(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)':
+  '@nestjs/swagger@11.4.8(@nestjs/common@11.2.8(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@11.2.8)(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)':
     dependencies:
-      '@microsoft/tsdoc': 0.16.0
+      '@microsoft/tsdoc': 0.17.1
       '@nestjs/common': 11.2.8(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
       '@nestjs/core': 11.2.8(@nestjs/common@11.2.8(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/platform-express@11.2.8)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/mapped-types': 2.1.1(@nestjs/common@11.2.8(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)
-      js-yaml: 5.3.0
+      js-yaml: 5.5.0
       lodash: 4.18.1
       path-to-regexp: 8.4.2
       reflect-metadata: 0.2.2
-      swagger-ui-dist: 5.32.13
+      swagger-ui-dist: 5.34.1
     optionalDependencies:
       class-transformer: 0.5.1
       class-validator: 0.15.1
 
-  '@nestjs/terminus@12.1.0(dc0134d0f1edbdde1e495e195773e268)':
+  '@nestjs/terminus@12.1.0(d47845431f4f4f7bbcd6b12aae8f52ab)':
     dependencies:
       '@nestjs/common': 11.2.8(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
       '@nestjs/core': 11.2.8(@nestjs/common@11.2.8(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/platform-express@11.2.8)(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -6465,7 +6468,7 @@ snapshots:
       '@grpc/grpc-js': 1.14.5
       '@grpc/proto-loader': 0.8.1
       '@nestjs/axios': 12.0.1(@nestjs/common@11.2.8(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(axios@1.20.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1))(rxjs@7.8.2)
-      '@nestjs/swagger': 11.4.7(@nestjs/common@11.2.8(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@11.2.8)(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)
+      '@nestjs/swagger': 11.4.8(@nestjs/common@11.2.8(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@11.2.8)(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)
       '@nestjs/typeorm': 12.0.2(@nestjs/common@11.2.8(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@11.2.8)(reflect-metadata@0.2.2)(rxjs@7.8.2)(typeorm@1.1.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.22)(@types/node@24.19.2)(typescript@6.0.3)))
       typeorm: 1.1.2(ioredis@6.0.0(supports-color@8.1.1))(pg@8.23.1)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.22)(@types/node@24.19.2)(typescript@6.0.3))
 
@@ -8178,6 +8181,8 @@ snapshots:
 
   argparse@2.0.1: {}
 
+  argparse@3.0.4: {}
+
   array-flatten@1.1.1: {}
 
   array-timsort@1.0.3: {}
@@ -9366,9 +9371,9 @@ snapshots:
     dependencies:
       argparse: 2.0.1
 
-  js-yaml@5.3.0:
+  js-yaml@5.5.0:
     dependencies:
-      argparse: 2.0.1
+      argparse: 3.0.4
 
   json-bigint@1.0.0:
     dependencies:
@@ -10375,7 +10380,7 @@ snapshots:
 
   supports-preserve-symlinks-flag@1.0.0: {}
 
-  swagger-ui-dist@5.32.13:
+  swagger-ui-dist@5.34.1:
     dependencies:
       '@scarf/scarf': 1.4.0
 
